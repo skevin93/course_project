@@ -1,0 +1,9 @@
+!interactive
+
+file1 test/PO.B2.frq.fchk
+file2 test/PO.B3.frq.fchk
+
+orientation eckart
+superposition masses
+maximize full
+

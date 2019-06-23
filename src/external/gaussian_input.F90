@@ -1,0 +1,399 @@
+module gaussian_input
+!!
+!!    Read Gaussian input
+!!    Written by Marco Scavino, June 2019
+!!
+!!    Module for read input file information
+!!    from Gaussian formatted file
+!!
+   use kinds
+   use file_info
+
+   implicit none
+
+   interface read_gaussian_var
+
+      module procedure read_var_real, read_var_int, read_var_char, read_var_logical, &
+               read_array_real, read_array_int, read_array_char, read_array_logical
+
+   end interface
+
+   character(len=*), parameter ::  &
+      int_format     = "(I12)",    &
+      real_format    = "(E22.15)", &
+      char_format    = "(A12)",    &
+      logical_format = "(L1)",     &
+      int_array_format     = "(6I12)",   &
+      real_array_format    = "(5E16.8)", &
+      char_array_format    = "(5A12)",   &
+      logical_array_format = "(72L1)"
+
+contains
+
+   subroutine read_var_real(f_unit, var_title, var)
+!!
+!!
+!!    Read real variable
+!!    Written by Marco Scavino, June 2019
+!!
+!!    Search for "var_title" in file "f_unit" and
+!!    return it as a real "var"
+!!
+      implicit none
+
+      integer, intent(in) :: f_unit
+      character(len=*), intent(in) :: var_title
+
+      real, intent(out) :: var
+
+      character(len=30) :: line
+
+      line =  find_title_variable(f_unit, var_title, "R", .false.)
+
+      read(line, real_format) var
+
+   end subroutine read_var_real
+
+   subroutine read_var_int(f_unit, var_title, var)
+!!
+!!
+!!    Read int variable
+!!    Written by Marco Scavino, June 2019
+!!
+!!    Search for "var_title" in file "f_unit" and
+!!    return it as a integer "var"
+!!
+      implicit none
+
+      integer, intent(in) :: f_unit
+      character(len=*), intent(in) :: var_title
+
+      integer, intent(out) :: var
+
+      character(len=30) :: line
+
+      line =  find_title_variable(f_unit, var_title, "I", .false.)
+
+      read(line, int_format) var
+
+   end subroutine read_var_int
+
+   subroutine read_var_char(f_unit, var_title, var)
+!!
+!!    Read char variable
+!!    Written by Marco Scavino, June 2019
+!!
+!!    Search for "var_title" in file "f_unit"
+!!    and return it as a char "var
+!!
+      implicit none
+
+      integer, intent(in) :: f_unit
+      character(len=*), intent(in) :: var_title
+      character(len=12), intent(out) :: var
+
+      character(len=30) :: line
+
+      line =  find_title_variable(f_unit, var_title, "C", .false.)
+
+      read(line, char_format) var
+
+   end subroutine read_var_char
+   
+   subroutine read_var_logical(f_unit, var_title, var)
+!!
+!!    Read logical variable
+!!    Written by Marco Scavino, June 2019
+!!
+!!    Search for "var_title" in file "f_unit"
+!!    and return it as a logical "var
+!!
+      implicit none
+
+      integer, intent(in) :: f_unit
+      character(len=*), intent(in) :: var_title
+      logical, intent(out) :: var
+
+      character(len=30) :: line
+
+      line =  find_title_variable(f_unit, var_title, "C", .false.)
+
+      read(line, logical_format) var
+
+   end subroutine read_var_logical
+
+   subroutine read_array_real(f_unit, var_title, var)
+!!
+!!    Read real array
+!!    Written by Marco Scavino, June 2019
+!!
+!!    Search for "var_title" in file "f_unit"
+!!    and return it as an array "var" of real
+!!
+      implicit none
+
+      integer, intent(in) :: f_unit
+      character(len=*), intent(in) :: var_title
+
+      real, intent(out) :: var(:)
+      real, allocatable :: tmp_var(:)
+
+      character(len=30) :: line
+
+      integer :: n, i
+
+      line =  find_title_variable(f_unit, var_title, "R", .true.)
+
+      read(line, int_format) n
+
+      allocate(tmp_var(n))
+
+      do i=1, n, 5
+
+         if(n-i > 5) then
+            read(f_unit, real_array_format) tmp_var(i:i+4)
+         else
+            read(f_unit, real_array_format) tmp_var(i:n)
+         end if
+      end do
+
+      var = tmp_var
+
+      deallocate(tmp_var)
+
+   end subroutine read_array_real
+
+   subroutine read_array_int(f_unit, var_title, var)
+!!
+!!    Read int array
+!!    Written by Marco Scavino, June 2019
+!!
+!!    Search for "var_title" in file "f_unit"
+!!    and return it as an array "var" of int
+!!
+      implicit none
+
+      integer, intent(in) :: f_unit
+      character(len=*), intent(in) :: var_title
+
+      integer, intent(out) :: var(:)
+
+      integer, allocatable :: tmp_var(:)
+
+      character(len=30) :: line
+
+      integer :: n, i
+
+      line =  find_title_variable(f_unit, var_title, "I", .true.)
+
+      read(line, int_format) n
+
+      allocate(tmp_var(n))
+
+      do i=1, n, 6
+
+         if(n-i > 6) then
+            read(f_unit, *) tmp_var(i:i+5)
+         else
+            read(f_unit, *) tmp_var(i:n)
+         end if
+      end do
+
+      var = tmp_var
+
+      deallocate(tmp_var)
+
+   end subroutine read_array_int
+
+   subroutine read_array_char(f_unit, var_title, var)
+!!
+!!    Read char array
+!!    Written by Marco Scavino, June 2019
+!!
+!!    Search for "var_title" in file "f_unit"
+!!    and return it as an array "var" of char
+!!
+      implicit none
+
+      integer, intent(in) :: f_unit
+      character(len=*), intent(in) :: var_title
+
+      character(len=12) :: var(:)
+
+      character(len=12), allocatable :: tmp_var(:)
+
+      character(len=30) :: line
+
+      integer :: n, i
+
+      line =  find_title_variable(f_unit, var_title, "C", .true.)
+
+      read(line, int_format) n
+
+      allocate(tmp_var(n))
+
+      do i=1, n, 5
+
+         if(n-i > 5) then
+            read(f_unit, char_array_format) tmp_var(i:i+5)
+         else
+            read(f_unit, char_array_format) tmp_var(i:n)
+         end if
+      end do
+
+      var = tmp_var
+
+      deallocate(tmp_var)
+
+   end subroutine read_array_char
+
+   subroutine read_array_logical(f_unit, var_title, var)
+!!
+!!    Read logical array
+!!    Written by Marco Scavino, June 2019
+!!
+!!    Search for "var_title" in file "f_unit"
+!!    and return it as an array "var" of logical
+!!
+      implicit none
+
+      integer, intent(in) :: f_unit
+      character(len=*), intent(in) :: var_title
+
+      logical, intent(out) :: var(:)
+
+      logical, allocatable :: tmp_var(:)
+
+      character(len=30) :: line
+
+      integer :: n, i
+
+      line =  find_title_variable(f_unit, var_title, "C", .true.)
+
+      read(line, int_format) n
+
+      allocate(tmp_var(n))
+
+      do i=1, n, 5
+
+         if(n-i > 5) then
+            read(f_unit, logical_array_format) tmp_var(i:i+4)
+         else
+            read(f_unit, logical_array_format) tmp_var(i:n)
+         end if
+      end do
+
+      var = tmp_var
+
+      deallocate(tmp_var)
+
+   end subroutine read_array_logical
+
+   subroutine find_section(f_unit, section_title, section_method, section_basis)
+!!
+!!    Find section
+!!    Written by Marco Scavino, June 2019
+!!
+!!    Search for "section_title" in file "f_unit"
+!!    and return the method and the basis of that section
+!!
+      implicit none
+
+      integer, intent(in) :: f_unit
+      character(len=*), intent(in) :: section_title
+      character(len=30), intent(out) :: section_method, section_basis
+
+      character(len=10) :: curr_title
+
+      integer :: f_error
+
+      rewind(f_unit)
+      do while (.true.)
+
+         read(f_unit, '(a10,a30,a30)', iostat=f_error) curr_title, section_method, section_basis
+
+         if(trim(section_title) == trim(curr_title)) return
+          
+         if(f_error /= 0) exit
+      
+      end do
+   
+      call output_error_msg("""" // trim(section_title) // """ not found!")
+
+   end subroutine find_section
+
+   function find_title_variable(f_unit, var_title, var_type, is_array) result(var)
+!!
+!!    Find variable
+!!    Written by Marco Scavino, June 2019
+!!
+!!    Search for "var_title" in file "f_unit" and return it as string "var".
+!!    This string will be converted in the proper type in the upper subroutine.
+!!
+!!    Two sanity check are performed:
+!!
+!!       * "var_type" is checked, it have to match the read value
+!!       * "is_array" check if current line is the array header
+!!
+      implicit none
+
+      integer, intent(in) :: f_unit
+      character(len=*), intent(in) :: var_title, var_type
+      logical, intent(in) :: is_array
+      
+      character(len=30) :: var
+
+      integer :: f_error
+      character(len=40) :: curr_title
+      character(len=1)  :: curr_type
+      character(len=30) :: line, array_num
+      character(len=2)  :: check_array
+
+      rewind(f_unit)
+      do while (.true.)
+
+         line = ""
+         read(f_unit, '(a40,3x,a1,3x,a)', iostat=f_error) curr_title, curr_type, line
+
+         if(trim(var_title) == trim(curr_title)) goto 100
+          
+         if(f_error /= 0) exit
+      
+      end do
+
+
+      call output_error_msg("""" // trim(var_title) // """ not found!")
+
+      !Sanity check type is correct
+100   if(var_type /= curr_type) then
+         call output_error_msg("Variable """ // trim(var_title) // """ of type """ // &
+            trim(curr_type) // """, while expected of type """ // &
+            trim(var_type) // """!")
+
+      end if
+
+      read(line, '(3x,a2,a)') check_array, array_num
+
+      if(is_array) then
+         if(check_Array == "N=") then
+
+            var = array_num
+
+         else
+
+            call output_error_msg("Expected array in gaussian input, but not found!")
+
+         end if
+
+      else
+
+         var = line
+
+      end if
+
+
+      return
+
+   end function find_title_variable
+
+end module gaussian_input
