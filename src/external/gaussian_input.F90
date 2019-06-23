@@ -3,18 +3,25 @@ module gaussian_input
 !!    Read Gaussian input
 !!    Written by Marco Scavino, June 2019
 !!
-!!    Module for read input file information
-!!    from Gaussian formatted file
+!!    Module for read input file information from Gaussian formatted file.
+!!    Current procedures:
+!!
+!!       *`gaussian_var`
+!!       *`gaussian_array_num`
+!!       *`gaussian_section`
 !!
    use kinds
    use file_info
+   use string_tools
 
    implicit none
 
-   interface read_gaussian_var
+   private
+
+   interface gaussian_var
 
       module procedure read_var_real, read_var_int, read_var_char, read_var_logical, &
-               read_array_real, read_array_int, read_array_char, read_array_logical
+                       read_array_real, read_array_int, read_array_char, read_array_logical
 
    end interface
 
@@ -27,6 +34,10 @@ module gaussian_input
       real_array_format    = "(5E16.8)", &
       char_array_format    = "(5A12)",   &
       logical_array_format = "(72L1)"
+
+   character(len=1), parameter :: allowed_type(5) = (/"R", "I", "C", "H", "L"/)
+
+   public :: gaussian_var, gaussian_array_num, gaussian_section
 
 contains
 
@@ -122,174 +133,97 @@ contains
 
    end subroutine read_var_logical
 
-   subroutine read_array_real(f_unit, var_title, var)
+   subroutine gaussian_array_num(f_unit, var_title, var_type, var)
+!!
+!!    Read array dimension
+!!    Written by Marco Scavino, June 2019
+!!
+!!    Search for "var_title" in file "f_unit" and return the array
+!!    dimension in "var". "var_type" is necessary for 
+!!
+      implicit none
+
+      integer, intent(in) :: f_unit
+      character(len=*), intent(in) :: var_title
+      character(len=1), intent(in) :: var_type
+
+      integer, intent(out) :: var
+
+      character(len=30) :: line
+
+      call check_type(var_type)
+
+      line =  find_title_variable(f_unit, var_title, var_type, .true.)
+
+      read(line, int_format) var
+
+   end subroutine gaussian_array_num
+
+   subroutine read_array_real(f_unit, var)
 !!
 !!    Read real array
 !!    Written by Marco Scavino, June 2019
 !!
-!!    Search for "var_title" in file "f_unit"
-!!    and return it as an array "var" of real
+!!    Read "var" of reals from "f_unit"
 !!
       implicit none
 
       integer, intent(in) :: f_unit
-      character(len=*), intent(in) :: var_title
+      real, intent(inout) :: var(:)
 
-      real, intent(out) :: var(:)
-      real, allocatable :: tmp_var(:)
-
-      character(len=30) :: line
-
-      integer :: n, i
-
-      line =  find_title_variable(f_unit, var_title, "R", .true.)
-
-      read(line, int_format) n
-
-      allocate(tmp_var(n))
-
-      do i=1, n, 5
-
-         if(n-i > 5) then
-            read(f_unit, real_array_format) tmp_var(i:i+4)
-         else
-            read(f_unit, real_array_format) tmp_var(i:n)
-         end if
-      end do
-
-      var = tmp_var
-
-      deallocate(tmp_var)
+      read(f_unit, char_array_format) var
 
    end subroutine read_array_real
 
-   subroutine read_array_int(f_unit, var_title, var)
+   subroutine read_array_int(f_unit, var)
 !!
 !!    Read int array
 !!    Written by Marco Scavino, June 2019
 !!
-!!    Search for "var_title" in file "f_unit"
-!!    and return it as an array "var" of int
+!!    Read "var" of integers from "f_unit"
 !!
       implicit none
 
       integer, intent(in) :: f_unit
-      character(len=*), intent(in) :: var_title
+      integer, intent(inout) :: var(:)
 
-      integer, intent(out) :: var(:)
-
-      integer, allocatable :: tmp_var(:)
-
-      character(len=30) :: line
-
-      integer :: n, i
-
-      line =  find_title_variable(f_unit, var_title, "I", .true.)
-
-      read(line, int_format) n
-
-      allocate(tmp_var(n))
-
-      do i=1, n, 6
-
-         if(n-i > 6) then
-            read(f_unit, *) tmp_var(i:i+5)
-         else
-            read(f_unit, *) tmp_var(i:n)
-         end if
-      end do
-
-      var = tmp_var
-
-      deallocate(tmp_var)
+      read(f_unit, int_array_format) var
 
    end subroutine read_array_int
 
-   subroutine read_array_char(f_unit, var_title, var)
+   subroutine read_array_char(f_unit, var)
 !!
 !!    Read char array
 !!    Written by Marco Scavino, June 2019
 !!
-!!    Search for "var_title" in file "f_unit"
-!!    and return it as an array "var" of char
+!!    Read "var" of characters from "f_unit"
 !!
       implicit none
 
       integer, intent(in) :: f_unit
-      character(len=*), intent(in) :: var_title
+      character(len=12), intent(inout) :: var(:)
 
-      character(len=12) :: var(:)
-
-      character(len=12), allocatable :: tmp_var(:)
-
-      character(len=30) :: line
-
-      integer :: n, i
-
-      line =  find_title_variable(f_unit, var_title, "C", .true.)
-
-      read(line, int_format) n
-
-      allocate(tmp_var(n))
-
-      do i=1, n, 5
-
-         if(n-i > 5) then
-            read(f_unit, char_array_format) tmp_var(i:i+5)
-         else
-            read(f_unit, char_array_format) tmp_var(i:n)
-         end if
-      end do
-
-      var = tmp_var
-
-      deallocate(tmp_var)
+      read(f_unit, char_array_format) var
 
    end subroutine read_array_char
 
-   subroutine read_array_logical(f_unit, var_title, var)
+   subroutine read_array_logical(f_unit, var)
 !!
 !!    Read logical array
 !!    Written by Marco Scavino, June 2019
 !!
-!!    Search for "var_title" in file "f_unit"
-!!    and return it as an array "var" of logical
+!!    Read "var" of logicals from "f_unit"
 !!
       implicit none
 
       integer, intent(in) :: f_unit
-      character(len=*), intent(in) :: var_title
+      logical, intent(inout) :: var(:)
 
-      logical, intent(out) :: var(:)
-
-      logical, allocatable :: tmp_var(:)
-
-      character(len=30) :: line
-
-      integer :: n, i
-
-      line =  find_title_variable(f_unit, var_title, "C", .true.)
-
-      read(line, int_format) n
-
-      allocate(tmp_var(n))
-
-      do i=1, n, 5
-
-         if(n-i > 5) then
-            read(f_unit, logical_array_format) tmp_var(i:i+4)
-         else
-            read(f_unit, logical_array_format) tmp_var(i:n)
-         end if
-      end do
-
-      var = tmp_var
-
-      deallocate(tmp_var)
+      read(f_unit, logical_array_format) var
 
    end subroutine read_array_logical
 
-   subroutine find_section(f_unit, section_title, section_method, section_basis)
+   subroutine gaussian_section(f_unit, section_title, section_method, section_basis)
 !!
 !!    Find section
 !!    Written by Marco Scavino, June 2019
@@ -302,6 +236,7 @@ contains
       integer, intent(in) :: f_unit
       character(len=*), intent(in) :: section_title
       character(len=30), intent(out) :: section_method, section_basis
+      character(len=50) :: tmp_basis
 
       character(len=10) :: curr_title
 
@@ -310,17 +245,23 @@ contains
       rewind(f_unit)
       do while (.true.)
 
-         read(f_unit, '(a10,a30,a30)', iostat=f_error) curr_title, section_method, section_basis
+         read(f_unit, '(a10,a30,a)', iostat=f_error) curr_title, section_method, tmp_basis
 
-         if(trim(section_title) == trim(curr_title)) return
-          
+         if(trim(uppercase(section_title)) == trim(uppercase(curr_title))) then
+            
+            tmp_basis = adjustl(tmp_basis)
+            read(tmp_basis, '(a30)') section_basis
+            return
+
+         end if
+
          if(f_error /= 0) exit
       
       end do
    
       call output_error_msg("""" // trim(section_title) // """ not found!")
 
-   end subroutine find_section
+   end subroutine gaussian_section
 
    function find_title_variable(f_unit, var_title, var_type, is_array) result(var)
 !!
@@ -355,7 +296,7 @@ contains
          line = ""
          read(f_unit, '(a40,3x,a1,3x,a)', iostat=f_error) curr_title, curr_type, line
 
-         if(trim(var_title) == trim(curr_title)) goto 100
+         if(trim(uppercase(var_title)) == trim(uppercase(curr_title))) goto 100
           
          if(f_error /= 0) exit
       
@@ -365,17 +306,18 @@ contains
       call output_error_msg("""" // trim(var_title) // """ not found!")
 
       !Sanity check type is correct
-100   if(var_type /= curr_type) then
-         call output_error_msg("Variable """ // trim(var_title) // """ of type """ // &
-            trim(curr_type) // """, while expected of type """ // &
-            trim(var_type) // """!")
+100   if(uppercase(var_type) /= uppercase(curr_type)) then
+         call output_error_msg("Variable """ // trim(var_title) // &
+            """ of type """ // trim(curr_type) // &
+            """, while expected of type """ // trim(var_type) // """!")
 
       end if
 
-      read(line, '(3x,a2,a)') check_array, array_num
+      read(line, '(a2,a)') check_array, array_num
 
       if(is_array) then
-         if(check_Array == "N=") then
+
+         if(check_array == "N=") then
 
             var = array_num
 
@@ -395,5 +337,28 @@ contains
       return
 
    end function find_title_variable
+
+   subroutine check_type(var_type)
+!!
+!!    Check type
+!!    Written by Marco Scavino, June 2019
+!!
+!!    Check if type is one of the allowed.
+!!
+      implicit none
+
+      character(len=1), intent(in) :: var_type
+
+      integer :: i
+
+      do i=1, size(allowed_type)
+
+         if(var_type == allowed_type(i)) return
+
+      end do
+
+      call output_error_msg("Used type not allowed!", required=allowed_type)
+
+   end subroutine check_type
 
 end module gaussian_input

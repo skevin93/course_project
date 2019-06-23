@@ -10,7 +10,8 @@ module file_info
 
    implicit none
 
-   integer :: input = 10, output = 11
+   integer :: input  = 10
+   integer :: output = 11
 
    interface open_file
 
