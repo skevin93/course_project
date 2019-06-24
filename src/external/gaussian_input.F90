@@ -55,7 +55,7 @@ contains
       integer, intent(in) :: f_unit
       character(len=*), intent(in) :: var_title
 
-      real, intent(out) :: var
+      real(dp), intent(out) :: var
 
       character(len=30) :: line
 
@@ -169,7 +169,7 @@ contains
       implicit none
 
       integer, intent(in) :: f_unit
-      real, intent(inout) :: var(:)
+      real(dp), intent(inout) :: var(:)
 
       read(f_unit, char_array_format) var
 

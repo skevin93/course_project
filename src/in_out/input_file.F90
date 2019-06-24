@@ -84,7 +84,7 @@ contains
       implicit none
 
       character(len=*), intent(in) :: var_title
-      real, intent(inout) :: var
+      real(dp), intent(inout) :: var
 
       character(len=*), intent(in), optional :: description
       logical, intent(in), optional :: required

@@ -1,13 +1,22 @@
 module array_info
 
+   use kinds
 
-   character(len=30) :: method_1, basis_1
-   real, allocatable, dimension(:) :: force_constant_1
+   type :: info
+      character(len=30) :: method
+      character(len=30) :: basis
+   end type
 
-   character(len=30) :: method_2, basis_2
-   real, allocatable, dimension(:) :: force_constant_2
+   integer, allocatable :: atoms(:)
+   type(info) :: system_1, system_2
 
-   real, allocatable, dimension(:) :: shift_vector
-   real, allocatable, dimension(:) :: matrix_duschinsky
+   real(dp), allocatable :: coord_1(:,:)
+   real(dp), allocatable :: coord_2(:,:)
+
+   real(dp), allocatable, dimension(:) :: force_constant_1
+   real(dp), allocatable, dimension(:) :: force_constant_2
+
+   real(dp), allocatable, dimension(:) :: shift_vector
+   real(dp), allocatable, dimension(:) :: matrix_duschinsky
 
 end module

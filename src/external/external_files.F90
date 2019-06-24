@@ -38,23 +38,21 @@ contains
       call check_file("file1", file_1, file_type)
       call check_file("file2", file_2, file_type)
 
-      call open_file(external_1, file_1, "read")
-      call open_file(external_2, file_2, "read")
-
    end subroutine
 
    subroutine sanity_check_external()
 
+      use array_info, only: atoms
+
       implicit none
 
-      real, allocatable, dimension(:) :: atomic_1, atomic_2
-
+      integer, allocatable :: atoms_tmp(:)
       integer :: n1, n2
 
       call gaussian_array_num(external_1, "Atomic numbers", "I", n1)
 
-      allocate(atomic_1(n1))
-      call gaussian_var(external_1, atomic_1)
+      allocate(atoms(n1))
+      call gaussian_var(external_1, atoms)
 
       call gaussian_array_num(external_2, "Atomic numbers", "I", n2)
 
@@ -62,10 +60,10 @@ contains
          call output_error_msg("Different number of atoms!")
       end if
 
-      allocate(atomic_2(n2))
-      call gaussian_var(external_2, atomic_2)
+      allocate(atoms_tmp(n2))
+      call gaussian_var(external_2, atoms_tmp)
 
-      if( .not. all(atomic_1 == atomic_2)) then
+      if( .not. all(atoms == atoms_tmp)) then
 
       end if
 
@@ -85,10 +83,11 @@ contains
 
    end subroutine read_external
 
-   subroutine check_file(var_title, file_name, file_type)
+   subroutine check_file(f_unit, var_title, file_name, file_type)
 
       implicit none
 
+      integer, intent(in) :: f_unit
       character(len=*), intent(in) :: var_title
       character(len=*), intent(inout) :: file_name, file_type
 
@@ -110,6 +109,10 @@ contains
          call output_error_msg("File format """ // trim(tmp_ext) // &
             """ different from expected type """ // trim(file_type) // """!")
       end if
+
+      
+      call open_file(f_unit, file_name, "read")
+
    end subroutine check_file
 
    subroutine close_external()
