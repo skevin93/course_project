@@ -1,25 +1,31 @@
 program duschinsky
 
-   use input_file,     only: read_input
+   use input_file,     only: read_input, read_var
    use file_info,      only: open_file, input, output
    use external_files
-
-   use array_info,   only: force_constant_1
+   use eckart_rotation, only: first_rotation
+   use superposition,   only: superposition_second
 
    implicit none
 
-   call open_file(output, "output.out", "write")
-   call open_file(input, "input.inp", "read")
+   character(len=30) :: program_name
+
+   call open_file(output, "write")
+   call open_file(input,  "read")
 
    call read_input()
 
-   call open_external()
+   program_name = "gaussian"
 
-   call sanity_check_external()
+   call read_var("program", program_name, &
+      description="Select the program used for input file", &
+      expected=(/"gaussian", &
+                 "dalton  "/))
 
-   call read_external()
-   call close_external()
+   call get_external()
 
-   print*, force_constant_1
+   call first_rotation(atoms, coord_1, n_atoms)
 
-end program
+   call superposition_second()
+
+end program duschinsky

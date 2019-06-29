@@ -6,13 +6,13 @@ module input_file
 !!    Read the input file opened in "input" unit. Core of this module is the "read_var" subroutine,
 !!    that take the following arguments:
 !!
-!!       * "var_title", the keyword it will search in the input file
-!!       * "var", returned variable
-!!       * "description", a description of the input, printed in interactive mode
-!!       * "expected" (optional), a list of expected values from the variable. If user enters unexpected
+!!       * `var_title`, the keyword it will search in the input file
+!!       * `var`, returned variable
+!!       * `description`, a description of the input, printed in interactive mode
+!!       * `expected` (optional, only char version), a list of expected values from the variable. If user enters unexpected
 !!          values, it will print an error, followed by the list
-!!       * "required" (optional), a boolean value to set if a variable is required. If .true., and the
-!!           variable is not found, program will stop and pritn the proper error.
+!!       * `required` (optional), a boolean value to set if a variable is required. If `.true.`, and the
+!!           variable is not found, program will stop and print an error.
 !!
    use kinds
    use file_info
@@ -21,7 +21,8 @@ module input_file
 
    interface read_var
 
-      module procedure read_var_real, read_var_int, read_var_char, read_var_flag
+      module procedure read_var_real, read_var_int, read_var_char, read_var_flag, &
+                       read_array_int
 
    end interface
 
@@ -38,32 +39,13 @@ contains
 !!
       implicit none
 
-      character(len=30) :: orientation, superposition, maximize
       character(len=30) ::result
 
-      orientation   = "eckart"
-      superposition = "masses"
-      maximize      = "full"
       result        = "matrix"
 
       call read_var("interactive", interactive)
 
       if(interactive) write(*,*) "INTERACTIVE MODE"
-
-      call read_var("orientation", orientation, &
-         description="Orientation of the first atom", &
-         expected=(/"original",&
-                    "eckart  "/))
-
-      call read_var("superposition", superposition, &
-         description="Superposition of the second atom", &
-         expected=(/"none  ", &
-                    "masses"/))
-
-      call read_var("maximize", maximize, &
-         description="Maximize overlap", &
-         expected=(/"full ", &
-                    "three"/))
 
       call read_var("result", result, &
          description="Result to print", &
@@ -71,14 +53,14 @@ contains
                     "shift ", &
                     "both  "/))
 
-   end subroutine
+   end subroutine read_input
 
    subroutine read_var_real(var_title, var, description, required)
 !!
 !!    Read real
 !!    Writte by Marco Scavino, June 2019
 !!
-!!    Search for "var_title" in input. If found, "var"" will be set
+!!    Search for `var_title` in input. If found, `var` will be set
 !!    to real value
 !!
       implicit none
@@ -109,14 +91,14 @@ contains
 
       read(var_answer,*) var
 
-   end subroutine
+   end subroutine read_var_real
 
    subroutine read_var_int(var_title, var, description, required)
 !!
 !!    Read int
 !!    Writte by Marco Scavino, June 2019
 !!
-!!    Search for "var_title" in input. If found, "var"" will be set
+!!    Search for `var_title` in input. If found, `var` will be set
 !!    to int value
 !!
       implicit none
@@ -147,14 +129,14 @@ contains
 
       read(var_answer,*) var
 
-   end subroutine
+   end subroutine read_var_int
 
    subroutine read_var_char(var_title, var, description, required, expected)
 !!
 !!    Read char
 !!    Writte by Marco Scavino, June 2019
 !!
-!!    Search for "var_title" in input. If found, "var"" will be set
+!!    Search for `var_title` in input. If found, `var` will be set
 !!    to char value
 !!
       implicit none
@@ -194,14 +176,14 @@ contains
 
       call output_error_msg("Variable value """ // trim(var) // """ not correct!", expected, line)
 
-   end subroutine
+   end subroutine read_var_char
 
    subroutine read_var_flag(var_title, var, description, required)
 !!
 !!    Read flag
 !!    Writte by Marco Scavino, June 2019
 !!
-!!    Search for "var_title" in input. If found, "var"" will be set
+!!    Search for `var_title` in input. If found, `var` will be set
 !!    to .true.
 !!
       implicit none
@@ -233,6 +215,64 @@ contains
 
       return
 
+   end subroutine read_var_flag
+
+   subroutine read_array_int(var_title, var, description, required)
+!!
+!!    Read array int
+!!    Writte by Marco Scavino, June 2019
+!!
+!!    Search for `var_title` in input. If found, the remaing line will be read
+!!    as an array of int and saved in `var`. If the user 
+!!
+      implicit none
+
+      character(len=*), intent(in) :: var_title
+      integer, intent(inout) :: var(:)
+
+      character(len=*), intent(in), optional :: description
+      logical, intent(in), optional :: required
+
+      character(len=30) :: var_answer
+      integer :: i, j, f_error
+      logical :: var_required
+
+      var_required = .false.
+      var = 0
+
+      if(interactive) then
+
+         call get_stdin_var(description, var_answer)
+
+
+      else
+
+         if(present(required))  var_required = required
+
+         call find_variable(input, var_title, var_required, var=var_answer)
+
+      end if
+
+      if(trim(var_answer) == "") return
+
+      j = 0
+      i = 0
+      do while(i<=len_trim(var_answer))
+         i = i+1
+
+         if(var_answer(i:i) == " ") then
+            j = j+1
+            read(var_answer(1:i),*, iostat=f_error) var(j)
+            if(f_error /= 0) exit
+            var_answer = adjustl(var_answer(i:))
+            i = 1
+         end if
+      end do
+
+      if(j < size(var))then
+         write(*,'(1x,a,i0,a, i0)') "Error: """ // var_title // """ expects ", size(var), " entries, but get only ", j
+         stop
+      end if
    end subroutine
 
    subroutine get_stdin_var(description, answer, choices)

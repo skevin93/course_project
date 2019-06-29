@@ -1,4 +1,4 @@
-module array_info
+module system_info
 
    use kinds
 
@@ -7,7 +7,8 @@ module array_info
       character(len=30) :: basis
    end type
 
-   integer, allocatable :: atoms(:)
+   integer, allocatable, target :: atoms(:)
+   integer :: n_atoms
    type(info) :: system_1, system_2
 
    real(dp), allocatable :: coord_1(:,:)
@@ -19,4 +20,4 @@ module array_info
    real(dp), allocatable, dimension(:) :: shift_vector
    real(dp), allocatable, dimension(:) :: matrix_duschinsky
 
-end module
+end module system_info

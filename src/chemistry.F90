@@ -4,12 +4,12 @@ module chemistry
 
    implicit none
 
-   type :: atomic
-      character(len=2) :: symbol
-      real(dp)         :: mass
-   end type atomic
+   ! type :: atomic
+   !    character(len=2) :: symbol
+   !    real(dp)         :: mass
+   ! end type atomic
 
-   type(atomic) :: atomic_masses(9) = (/
+   real(dp) :: atomic_masses(9) = (/ &
        1.00790_dp, & ! H
        4.00260_dp, & ! He
        6.94000_dp, & ! Li
@@ -23,4 +23,4 @@ module chemistry
 
 
 
-end module
+end module chemistry

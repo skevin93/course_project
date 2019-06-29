@@ -41,109 +41,109 @@ module gaussian_input
 
 contains
 
-   subroutine read_var_real(f_unit, var_title, var)
+   subroutine read_var_real(the_file, var_title, var)
 !!
 !!
 !!    Read real variable
 !!    Written by Marco Scavino, June 2019
 !!
-!!    Search for "var_title" in file "f_unit" and
+!!    Search for "var_title" in file "the_file" and
 !!    return it as a real "var"
 !!
       implicit none
 
-      integer, intent(in) :: f_unit
+      type(file), intent(in) :: the_file
       character(len=*), intent(in) :: var_title
 
       real(dp), intent(out) :: var
 
       character(len=30) :: line
 
-      line =  find_title_variable(f_unit, var_title, "R", .false.)
+      line =  find_title_variable(the_file, var_title, "R", .false.)
 
       read(line, real_format) var
 
    end subroutine read_var_real
 
-   subroutine read_var_int(f_unit, var_title, var)
+   subroutine read_var_int(the_file, var_title, var)
 !!
 !!
 !!    Read int variable
 !!    Written by Marco Scavino, June 2019
 !!
-!!    Search for "var_title" in file "f_unit" and
+!!    Search for "var_title" in file "the_file" and
 !!    return it as a integer "var"
 !!
       implicit none
 
-      integer, intent(in) :: f_unit
+      type(file), intent(in) :: the_file
       character(len=*), intent(in) :: var_title
 
       integer, intent(out) :: var
 
       character(len=30) :: line
 
-      line =  find_title_variable(f_unit, var_title, "I", .false.)
+      line =  find_title_variable(the_file, var_title, "I", .false.)
 
       read(line, int_format) var
 
    end subroutine read_var_int
 
-   subroutine read_var_char(f_unit, var_title, var)
+   subroutine read_var_char(the_file, var_title, var)
 !!
 !!    Read char variable
 !!    Written by Marco Scavino, June 2019
 !!
-!!    Search for "var_title" in file "f_unit"
+!!    Search for "var_title" in file "the_file"
 !!    and return it as a char "var
 !!
       implicit none
 
-      integer, intent(in) :: f_unit
+      type(file), intent(in) :: the_file
       character(len=*), intent(in) :: var_title
       character(len=12), intent(out) :: var
 
       character(len=30) :: line
 
-      line =  find_title_variable(f_unit, var_title, "C", .false.)
+      line =  find_title_variable(the_file, var_title, "C", .false.)
 
       read(line, char_format) var
 
    end subroutine read_var_char
    
-   subroutine read_var_logical(f_unit, var_title, var)
+   subroutine read_var_logical(the_file, var_title, var)
 !!
 !!    Read logical variable
 !!    Written by Marco Scavino, June 2019
 !!
-!!    Search for "var_title" in file "f_unit"
+!!    Search for "var_title" in file "the_file"
 !!    and return it as a logical "var
 !!
       implicit none
 
-      integer, intent(in) :: f_unit
+      type(file), intent(in) :: the_file
       character(len=*), intent(in) :: var_title
       logical, intent(out) :: var
 
       character(len=30) :: line
 
-      line =  find_title_variable(f_unit, var_title, "C", .false.)
+      line =  find_title_variable(the_file, var_title, "C", .false.)
 
       read(line, logical_format) var
 
    end subroutine read_var_logical
 
-   subroutine gaussian_array_num(f_unit, var_title, var_type, var)
+   subroutine gaussian_array_num(the_file, var_title, var_type, var)
 !!
 !!    Read array dimension
 !!    Written by Marco Scavino, June 2019
 !!
-!!    Search for "var_title" in file "f_unit" and return the array
+!!    Search for "var_title" in file "the_file" and return the array
 !!    dimension in "var". "var_type" is necessary for 
 !!
       implicit none
 
-      integer, intent(in) :: f_unit
+      type(file), intent(in) :: the_file
       character(len=*), intent(in) :: var_title
       character(len=1), intent(in) :: var_type
 
@@ -153,87 +153,87 @@ contains
 
       call check_type(var_type)
 
-      line =  find_title_variable(f_unit, var_title, var_type, .true.)
+      line =  find_title_variable(the_file, var_title, var_type, .true.)
 
       read(line, int_format) var
 
    end subroutine gaussian_array_num
 
-   subroutine read_array_real(f_unit, var)
+   subroutine read_array_real(the_file, var)
 !!
 !!    Read real array
 !!    Written by Marco Scavino, June 2019
 !!
-!!    Read "var" of reals from "f_unit"
+!!    Read "var" of reals from "the_file"
 !!
       implicit none
 
-      integer, intent(in) :: f_unit
+      type(file), intent(in) :: the_file
       real(dp), intent(inout) :: var(:)
 
-      read(f_unit, char_array_format) var
+      read(the_file%unit_, real_array_format) var
 
    end subroutine read_array_real
 
-   subroutine read_array_int(f_unit, var)
+   subroutine read_array_int(the_file, var)
 !!
 !!    Read int array
 !!    Written by Marco Scavino, June 2019
 !!
-!!    Read "var" of integers from "f_unit"
+!!    Read "var" of integers from "the_file"
 !!
       implicit none
 
-      integer, intent(in) :: f_unit
+      type(file), intent(in) :: the_file
       integer, intent(inout) :: var(:)
 
-      read(f_unit, int_array_format) var
+      read(the_file%unit_, int_array_format) var
 
    end subroutine read_array_int
 
-   subroutine read_array_char(f_unit, var)
+   subroutine read_array_char(the_file, var)
 !!
 !!    Read char array
 !!    Written by Marco Scavino, June 2019
 !!
-!!    Read "var" of characters from "f_unit"
+!!    Read "var" of characters from "the_file"
 !!
       implicit none
 
-      integer, intent(in) :: f_unit
+      type(file), intent(in) :: the_file
       character(len=12), intent(inout) :: var(:)
 
-      read(f_unit, char_array_format) var
+      read(the_file%unit_, char_array_format) var
 
    end subroutine read_array_char
 
-   subroutine read_array_logical(f_unit, var)
+   subroutine read_array_logical(the_file, var)
 !!
 !!    Read logical array
 !!    Written by Marco Scavino, June 2019
 !!
-!!    Read "var" of logicals from "f_unit"
+!!    Read "var" of logicals from "the_file"
 !!
       implicit none
 
-      integer, intent(in) :: f_unit
+      type(file), intent(in) :: the_file
       logical, intent(inout) :: var(:)
 
-      read(f_unit, logical_array_format) var
+      read(the_file%unit_, logical_array_format) var
 
    end subroutine read_array_logical
 
-   subroutine gaussian_section(f_unit, section_title, section_method, section_basis)
+   subroutine gaussian_section(the_file, section_title, section_method, section_basis)
 !!
 !!    Find section
 !!    Written by Marco Scavino, June 2019
 !!
-!!    Search for "section_title" in file "f_unit"
+!!    Search for "section_title" in file "the_file"
 !!    and return the method and the basis of that section
 !!
       implicit none
 
-      integer, intent(in) :: f_unit
+      type(file), intent(in) :: the_file
       character(len=*), intent(in) :: section_title
       character(len=30), intent(out) :: section_method, section_basis
       character(len=50) :: tmp_basis
@@ -242,10 +242,10 @@ contains
 
       integer :: f_error
 
-      rewind(f_unit)
+      rewind(the_file%unit_)
       do while (.true.)
 
-         read(f_unit, '(a10,a30,a)', iostat=f_error) curr_title, section_method, tmp_basis
+         read(the_file%unit_, '(a10,a30,a)', iostat=f_error) curr_title, section_method, tmp_basis
 
          if(trim(uppercase(section_title)) == trim(uppercase(curr_title))) then
             
@@ -263,12 +263,12 @@ contains
 
    end subroutine gaussian_section
 
-   function find_title_variable(f_unit, var_title, var_type, is_array) result(var)
+   function find_title_variable(the_file, var_title, var_type, is_array) result(var)
 !!
 !!    Find variable
 !!    Written by Marco Scavino, June 2019
 !!
-!!    Search for "var_title" in file "f_unit" and return it as string "var".
+!!    Search for "var_title" in file "the_file" and return it as string "var".
 !!    This string will be converted in the proper type in the upper subroutine.
 !!
 !!    Two sanity check are performed:
@@ -278,7 +278,7 @@ contains
 !!
       implicit none
 
-      integer, intent(in) :: f_unit
+      type(file), intent(in) :: the_file
       character(len=*), intent(in) :: var_title, var_type
       logical, intent(in) :: is_array
       
@@ -290,11 +290,11 @@ contains
       character(len=30) :: line, array_num
       character(len=2)  :: check_array
 
-      rewind(f_unit)
+      rewind(the_file%unit_)
       do while (.true.)
 
          line = ""
-         read(f_unit, '(a40,3x,a1,3x,a)', iostat=f_error) curr_title, curr_type, line
+         read(the_file%unit_, '(a40,3x,a1,3x,a)', iostat=f_error) curr_title, curr_type, line
 
          if(trim(uppercase(var_title)) == trim(uppercase(curr_title))) goto 100
           

@@ -9,23 +9,74 @@ module eckart_rotation
 !!
 
    use kinds
+   use parameters
+   use input_file
+   use chemistry, only: atomic_masses
 
    implicit none
 
+   real(dp), parameter :: tolerance = 1.0E-6_dp
 
 contains
 
-   subroutine inertia_mom(n_atom, coord, atomic_mass, eigen_value, eigen_vec)
+   subroutine first_rotation(atoms, coord, n)
+
+      implicit none
+
+      real(dp), intent(inout) :: coord(:,:)
+      integer, intent(in)     :: atoms(:), n
+
+      real(dp) :: T(3,3)
+      real(dp), allocatable :: atomic_mass(:), tmp_coord(:,:)
+
+      integer :: i
+
+      character(len=30) :: orientation
+
+      orientation = "original"
+
+      call read_var("orientation", orientation, &
+         description="Orientation of the first atom", &
+         expected=(/"original",&
+                    "eckart  "/))
+
+      if(trim(orientation) == "eckart") then
+
+         allocate(atomic_mass(n))
+
+         do i=1, n
+            atomic_mass(i) = atomic_masses(atoms(i))
+         end do
+
+         call eckart(n, coord, atomic_mass, T)
+
+         deallocate(atomic_mass)
+
+         allocate(tmp_coord(3,n))
+
+         call dgemm("N", "N", 3,n,3, one, T, 3, coord, 3, zero, tmp_coord, 3)
+
+         coord = tmp_coord
+
+         deallocate(tmp_coord)
+
+      end if
+
+   end subroutine
+
+   subroutine eckart(n_atom, coord, atomic_mass, eigen_vec, eigen_val)
 
       implicit none
       ! Input
       integer, intent(in) :: n_atom
       real(dp), intent(in) :: coord(:,:), atomic_mass(:)
       ! Output
-      real(dp), intent(out) :: eigen_vec(3,3), eigen_value(3)
+      real(dp), intent(out) :: eigen_vec(3,3)
+      real(dp), intent(out), optional :: eigen_val(3)
       ! Local
-      integer :: i, info, j
-      real :: T(3,3), x_2, y_2, z_2
+      integer :: i, info
+      real(dp) :: T(3,3), x_2, y_2, z_2
+      real(dp) :: eigen_value(3)
 
       eigen_value = zero
       eigen_vec   = zero
@@ -55,11 +106,15 @@ contains
 
       !Diagonalization
 
-      if (abs(T(1,2)) + abs(T(1,3)) + abs(T(2,3)) < 1.0e-6E0) then
-         forall (i=1:3)
+      if (abs(T(1,2)) < tolerance .and. &
+          abs(T(1,3)) < tolerance .and. &
+          abs(T(2,3)) < tolerance) then
+
+         do i=1, 3
             eigen_value(i) = T(i,i)
-            eigen_vec(i,i) = 1.0E0
-         end forall
+            eigen_vec(i,i) = one
+         end do
+
       else
       
          call dsyev('V', 'L', 3, T, 3, eigen_value, eigen_vec, 9, info)
@@ -71,8 +126,14 @@ contains
          end if
       
          eigen_vec = T
+
       end if
+
+      if(present(eigen_val))then
+         eigen_val = eigen_value
+      end if
+
       return
-   end subroutine inertia_mom
+   end subroutine eckart
 
 end module

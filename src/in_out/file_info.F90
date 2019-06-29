@@ -10,14 +10,15 @@ module file_info
 
    implicit none
 
-   integer :: input  = 10
-   integer :: output = 11
+   type file
+      integer           :: unit_ = -1
+      character(len=30) :: name_ = ""
+      character(len=30) :: type_ = ""
+   end type file
 
-   interface open_file
+   type(file) :: input  = file(11, "input.inp", "inp")
+   type(file) :: output = file(12, "output.out", "out")
 
-      module procedure open_formatted_file
-
-   end interface
 !
 ! detect if windows system and in case, set the path
 ! separator
@@ -30,43 +31,69 @@ module file_info
 
 contains
 
-   subroutine open_formatted_file(f_unit, f_name, f_action)
+   subroutine open_file(the_file, f_action, f_form)
 
       implicit none
 
-      integer, intent(out) :: f_unit
-      character(len=*), intent(in) :: f_name, f_action
+      type(file), intent(inout) :: the_file
+      character(len=*), intent(in) :: f_action
+      character(len=*), intent(in), optional :: f_form
 
+      character(len=30) :: form
       logical :: check_file = .false.
       integer :: f_error
 
       f_error = 0
 
-      inquire(unit=f_unit, opened=check_file)
+      form =  "formatted"
+      if(present(f_form)) form = f_form
+
+      inquire(unit=the_file%unit_, opened=check_file)
 
       if (check_file) then
-         call output_error_msg("Unit for file " // trim(f_name) // "alrteady opened!")
+         call output_error_msg("Unit for file " // trim(the_file%name_) // "already opened!")
       end if
 
       if("read" == trim(f_action)) then
 
-         inquire(file=f_name, exist=check_file)
+         inquire(file=the_file%name_, exist=check_file)
 
          if(.not. check_file) then
-            call output_error_msg("Input file not found!")
+            call output_error_msg("Input file " // trim(the_file%name_) // " not found!")
          end if
    
       end if
    
-      open(unit=f_unit, file=f_name, access="sequential", form="formatted", action=f_action, iostat=f_error)
-      
+      open(unit=the_file%unit_, file=the_file%name_, &
+         access="sequential", form=trim(form), &
+         action=f_action, iostat=f_error)
+
       if(f_error /= 0) then
-         call output_error_msg("Impossible to open file """ // trim(f_name) // """")
+         call output_error_msg("Impossible to open file """ // trim(the_file%name_) // """")
       end if
       
-      rewind(f_unit)
+      rewind(the_file%unit_)
       
-   end subroutine open_formatted_file
+   end subroutine open_file
+
+   subroutine close_file(the_file)
+
+      implicit none
+
+      type(file), intent(in) :: the_file
+      logical :: opened
+
+      inquire(unit=the_file%unit_, opened=opened)
+
+      if(.not. opened) then
+
+         call output_error_msg("File """ // trim(the_file%name_) // """ not opened!")
+
+      end if
+
+      close(the_file%unit_)
+
+   end subroutine close_file
 
    subroutine get_filename(file_path, file_name, file_ext)
 
@@ -129,17 +156,19 @@ contains
          do i=2, size(required)
             write(*, '(",",1x,a)', advance="no") trim(required(i))
          end do
+
          write(*,'(a)') "]"
+
       end if
       stop 1
 
    end subroutine
 
-   subroutine find_variable(f_unit, var_title, required, var, found, line_num)
+   subroutine find_variable(the_file, var_title, required, var, found, line_num)
 
       implicit none
 
-      integer, intent(in) :: f_unit
+      type(file), intent(in) :: the_file
       character(len=*), intent(in) :: var_title
       logical, intent(in) :: required
 
@@ -152,18 +181,20 @@ contains
 
       character(len=225) :: line
 
-      rewind(f_unit)
+      rewind(the_file%unit_)
 
       var_found = .false.
       f_error = 0
       num = 0
+
+      ! loop over the file until "var_title" is found
 
       do while (.not. var_found)
 
          num = num + 1
 
          line = ""
-         read(f_unit, '(a)', iostat=f_error) line
+         read(the_file%unit_, '(a)', iostat=f_error) line
 
          if(f_error /= 0) exit
          if(trim(line) == "") cycle
@@ -203,12 +234,6 @@ contains
          end do
       
       end do
-
-      ! if(var == "") then
-
-      !    call output_error_msg("Empty value for variable """ // trim(var_title) // """")
-
-      ! end if
 
       if(required .and. .not. var_found) then
          call output_error_msg("Required variable """ // trim(var_title) // &

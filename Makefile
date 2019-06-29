@@ -1,10 +1,11 @@
 
 # set the compiler and proper flags
-FC     = gfortran
-FC_FLAGS = -std=f95 -Wall
-STANDARD_FLAGS = -O3
-DEBUG_FLAGS = -Og
-FC_INC = 
+FC     ?= gfortran
+FC_FLAGS       ?= -std=f95 -Wall
+STANDARD_FLAGS ?= -O3
+DEBUG_FLAGS    ?= -Og
+FC_INC =
+FC_LIB = -lblas -llapack
 
 #set object
 OBJ = duschinsky
@@ -21,12 +22,15 @@ SCRIPT_DIR = script
 # set sources files. The order is mandatory: if a file is dependent
 # from another, simple put it after the dependance in the list
 
-FILES =  various/kinds.F90      		 \
-		   various/parameters.F90 		 \
+FILES =  various/kinds.F90           \
+		   various/parameters.F90      \
 			tools/string_tools.F90      \
 			in_out/file_info.F90        \
 			in_out/input_file.F90       \
-			array_info.F90              \
+			system_info.F90             \
+			chemistry.F90               \
+			eckart_rotation.F90         \
+			superposition.F90           \
 			external/gaussian_input.F90 \
 			external/external_files.F90 \
 		   $(OBJ).F90
@@ -48,10 +52,10 @@ test:
 
 
 $(BIN_DIR)/$(OBJ): $(SRC_OBJS)
-	$(FC) $(FC_FLAGS) -J$(MOD_DIR) -o $@ $^
+	$(FC) $(FC_FLAGS) -J$(MOD_DIR) -o $@ $^ $(FC_LIB)
 
 $(SRC_OBJS):$(OBJ_DIR)/%.o: $(SRC_DIR)/%.F90
-	$(FC) $(FC_FLAGS) -J$(MOD_DIR) -c -o $@ $^
+	$(FC) $(FC_FLAGS) -J$(MOD_DIR) -c -o $@ $^ $(FC_LIB)
 
 # make the directories for necessary build
 directories:
