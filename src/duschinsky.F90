@@ -1,10 +1,12 @@
 program duschinsky
 
-   use input_file,     only: read_input, read_var
+   use input_file,     only: check_interactive, read_var
    use file_info,      only: open_file, input, output
-   use external_files
+   use external_files, only: get_external
    use eckart_rotation, only: first_rotation
    use superposition,   only: superposition_second
+
+   use system_info
 
    implicit none
 
@@ -13,7 +15,7 @@ program duschinsky
    call open_file(output, "write")
    call open_file(input,  "read")
 
-   call read_input()
+   call check_interactive()
 
    program_name = "gaussian"
 
@@ -26,6 +28,6 @@ program duschinsky
 
    call first_rotation(atoms, coord_1, n_atoms)
 
-   call superposition_second()
+   call superposition_second(atoms, coord_1, coord_2, n_atoms)
 
 end program duschinsky

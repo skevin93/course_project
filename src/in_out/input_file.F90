@@ -26,34 +26,31 @@ module input_file
 
    end interface
 
-   logical :: interactive = .false.
+   logical, private :: interactive = .false.
 
 contains
 
-   subroutine read_input()
+   subroutine check_interactive()
 !!
-!!    Read input
+!!    Check interactive mode
 !!    Writte by Marco Scavino, June 2019
 !!
-!!    Read some settings from the "input" file
+!!    Search the flag "interactive" in the input file. In case, switch to the
+!!    interactive mode.
 !!
       implicit none
-
-      character(len=30) ::result
-
-      result        = "matrix"
 
       call read_var("interactive", interactive)
 
       if(interactive) write(*,*) "INTERACTIVE MODE"
 
-      call read_var("result", result, &
-         description="Result to print", &
-         expected=(/"matrix", &
-                    "shift ", &
-                    "both  "/))
+      ! call read_var("result", result, &
+      !    description="Result to print", &
+      !    expected=(/"matrix", &
+      !               "shift ", &
+      !               "both  "/))
 
-   end subroutine read_input
+   end subroutine check_interactive
 
    subroutine read_var_real(var_title, var, description, required)
 !!
@@ -243,7 +240,6 @@ contains
       if(interactive) then
 
          call get_stdin_var(description, var_answer)
-
 
       else
 

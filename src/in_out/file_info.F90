@@ -221,6 +221,7 @@ contains
                      if(trim(line(i:)) /= "") then
                         
                         var = trim(adjustl(line(i:)))
+
                      end if
 
                   end if

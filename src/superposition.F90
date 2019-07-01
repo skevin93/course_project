@@ -1,28 +1,42 @@
 module superposition
-
+!!
+!!    Superposition module
+!!    Written by Marco Scavino, June 2019
+!!
+!!    Superposition is made usign the quaternions.
+!!
    use kinds
    use parameters
    use input_file
+   use output_module
+   use chemistry
    ! use system_info
 
    real(dp), parameter :: tolerance = 1.0E-6_dp
 
 contains
 
-   subroutine superposition_second(masses, coord_1, coord_2, n_atoms)
-
+   subroutine superposition_second(atoms, coord_1, coord_2, n_atoms)
+!!
+!!    Superposition of second system
+!!    Written by Marco Scavino, June 2019
+!!
+!!    Superpose the second system over the first one usign quaternions
+!!
       implicit none
 
-      real(dp), intent(in), dimension(:) :: masses
-      real(dp), intent(in), target, dimension(:,:) :: coord_1, coord_2
       integer, intent(in) :: n_atoms
+      integer, intent(in), dimension(n_atoms) :: atoms
+      real(dp), intent(in), target, dimension(3,n_atoms) :: coord_1, coord_2
 
       integer, allocatable :: atoms_indexes(:)
       real(dp), pointer    :: r_0(:,:), r_1(:,:)
       character(len=30) :: superposition, maximize
-      real(dp), allocatable :: weight(:)
-      real(dp) :: total_weight
-      integer :: i, num_points
+      real(dp), allocatable :: weight(:), result(:,:)
+      real(dp) :: total_weight, q(4), D(3,3)
+      integer :: i, num_atoms, Z
+      
+      type(file) :: f1, f2
 
       superposition = "masses"
       maximize      = "all"
@@ -36,41 +50,49 @@ contains
          description="Maximize overlap over the following atoms", &
          expected=(/"all  ", &
                   "three"/))
-      
+
       if(maximize == "three")then
 
-         num_points = 3
+         num_atoms = 3
 
-         allocate(atoms_indexes(3))
-         allocate(r_0(3,3))
-         allocate(r_1(3,3))
+         allocate(weight(num_atoms))
+         allocate(atoms_indexes(num_atoms))
+
+         allocate(r_0(3,num_atoms))
+         allocate(r_1(3,num_atoms))
 
          call read_var("atoms", atoms_indexes, &
             description="Insert the three atom index to superpose", &
             required=.true.)
-      
-         do i=1, 3
+
+         do i=1, num_atoms
             r_0(:,i) = coord_1(:,atoms_indexes(i))
             r_1(:,i) = coord_2(:,atoms_indexes(i))
+
+            Z = atoms(atoms_indexes(i))
+            weight(i) = atomic_masses(Z)
+
          end do
+
 
          deallocate(atoms_indexes)
 
       else
 
-         num_points = n_atoms
+         allocate(weight(n_atoms))
 
+         do i=1, n_atoms
+            weight = atomic_masses(atoms(i))
+         end do
          r_0 => coord_1
          r_1 => coord_2
 
       end if
 
-
-      allocate(weight(num_points))
-
+      ! If "masses" is setup for superposition, use atomic masses, else use the same weights for
+      !  all the atoms. The weights are normalized to assure that Σ_α w_α = 1
       if(trim(superposition) == "masses") then
 
-         weight = masses
          total_weight = sum(weight)
          weight = weight/total_weight
 
@@ -79,6 +101,28 @@ contains
          weight = one/n_atoms
 
       end if
+      print*, weight
+
+      call calc_q(weight, r_1, r_0, q, num_atoms)
+
+      call build_rotation_matrix(q, D)
+
+      allocate(result(3,n_atoms))
+      call dgemm("N", "N", 3, n_atoms, 3, one, D, 3, coord_2, 3, zero, result, 3)
+
+      f1 = file(21, "old_2.xyz", "xyz")
+      f2 = file(22, "new_2.xyz", "xyz")
+
+      call open_file(f1, "write")
+      call open_file(f2, "write")
+
+      call output_xyz_file(f1, atoms, coord_2, n_atoms)
+      call output_xyz_file(f2, atoms, result, n_atoms)
+
+      call close_file(f1)
+      call close_file(f2)
+
+      deallocate(result)
 
    end subroutine
 
@@ -89,12 +133,12 @@ contains
       integer, intent(in) :: n
       real(dp), intent(in) :: w(:)
       real(dp), intent(in) :: r_0(:,:), r_1(:,:)
-      real(dp), intent(out), dimension(4) :: q
+      real(dp), intent(out), dimension(:) :: q
 
       real(dp) :: M(4,4)
       integer :: i, info
       real(dp) :: coord_sq, xx, yy, zz
-      real(dp), dimension(4) :: tmp_1, tmp_2
+      real(dp) :: tmp_1(4), tmp_2(4,4)
 
       M = zero
 
@@ -110,7 +154,7 @@ contains
          M(1,1) = M(1,1) + w(i)*(coord_sq-xx-yy-zz)
          M(2,2) = M(2,2) + w(i)*(coord_sq-xx+yy+zz)
          M(3,3) = M(3,3) + w(i)*(coord_sq+xx-yy+zz)
-         M(4,4) = M(4,4) + w(i)*(coord_sq-xx+yy-zz)
+         M(4,4) = M(4,4) + w(i)*(coord_sq+xx+yy-zz)
 
          M(1,2) = M(1,2) + w(i)*two*(r_0(2,i)*r_1(3,i) + r_0(3,i)*r_1(2,i))
          M(1,3) = M(1,3) + w(i)*two*(r_0(3,i)*r_1(1,i) - r_0(1,i)*r_1(3,i))
@@ -152,14 +196,16 @@ contains
 
    end subroutine
 
-   subroutine build_rotation_matrix(q, D)
+   subroutine build_rotation_matrix(q, D_check)
 
       implicit none
 
       real(dp), intent(in)  :: q(0:3)
-      real(dp), intent(out) :: D(3,3)
+      real(dp), intent(out) :: D_check(3,3)
 
-      real(dp) :: q_sq(0:3)
+      real(dp) :: q_sq(0:3), atan30, atan12, alpha, beta, gamma
+      real(dp), dimension(3,3) :: D, Rx, Ry, Rz
+      integer :: i
 
       q_sq(0) = q(0)*q(0)
       q_sq(1) = q(1)*q(1)
@@ -177,5 +223,94 @@ contains
       D(3,1) = two*(q(1)*q(3) - q(0)*q(2))
       D(3,2) = two*(q(0)*q(1) + q(2)*q(3))
 
+      print*, "q·q = ", q(0)*q(0) + q(1)*q(1) + q(2)*q(2) + q(3)*q(3)
+
+      atan30 = atan(q(3)/q(0))
+      atan12 = atan(q(1)/q(2))
+
+      alpha = atan30-atan12
+      gamma = atan30+atan12
+      beta  = q(0)/(cos((gamma+alpha)*half))
+      print*, "α = ", alpha/pi*180
+      print*, "β = ", beta/pi*180
+      print*, "γ = ", gamma/pi*180
+
+      Rx(1,:) = (/one,        zero,        zero/)
+      Rx(2,:) = (/zero, cos(gamma), -sin(gamma)/)
+      Rx(3,:) = (/zero, sin(gamma),  cos(gamma)/)
+
+      Ry(1,:) = (/ cos(beta),  zero, sin(beta)/)
+      Ry(2,:) = (/      zero,   one,      zero/)
+      Ry(3,:) = (/-sin(beta),  zero, cos(beta)/)
+
+      Rz(1,:) = (/cos(alpha), -sin(alpha), zero/)
+      Rz(2,:) = (/sin(alpha),  cos(alpha), zero/)
+      Rz(3,:) = (/      zero,        zero,  one/)
+
+
+      D_check = matmul(Ry, Rz)
+
+      D_check = matmul(Rz, D_check)
+
+      print'(/1x, "det(",a,"): ", f0.6)', "D", deter(D)
+      print*, "D matrix:"
+      print'(3(F12.6))', (D(i,:), i=1, 3)
+
+      call inverse(D, Ry)
+      Ry = Ry - transpose(D)
+      print*, "D-1 matrix:"
+      print'(3(F12.6))', (Ry(i,:), i=1, 3)
+
+
+      print'(/1x, "det(",a,"): ", f0.6)', "D_check", deter(D_check)
+      print*, "D matrix:"
+      print'(3(F12.6))', (D_check(i,:), i=1, 3)
+
+      call inverse(D_check, Ry)
+      print'(/1x, a)', "D-1 matrix:"
+      print'(3(F12.6))', (Ry(i,:), i=1, 3)
+   end subroutine
+
+   pure function deter(mat)
+
+      implicit none
+
+      real(dp), intent(in) :: mat(3,3)
+
+      real(dp) :: deter
+      
+      deter = mat(1,1)*mat(2,2)*mat(3,3)
+      deter = deter + mat(1,2)*mat(2,3)*mat(3,1)
+      deter = deter + mat(1,3)*mat(3,2)*mat(2,1)
+      deter = deter - mat(1,3)*mat(2,2)*mat(3,1)
+      deter = deter - mat(1,2)*mat(2,1)*mat(3,3)
+      deter = deter - mat(2,3)*mat(3,2)*mat(1,1)
+
+   end function
+
+   pure subroutine inverse(mat, mat_res)
+
+      implicit none
+
+      real(dp), intent(in) :: mat(3,3)
+      real(dp), intent(out) :: mat_res(3,3)
+
+      real(dp) :: deter_mat
+
+      deter_mat = deter(mat)
+
+      if(deter_mat == zero) return
+!  C_A^T
+      mat_res(1,1) =   mat(2,2)*mat(3,3) - mat(2,3)*mat(3,2)
+      mat_res(1,2) = -(mat(1,2)*mat(3,3) - mat(1,3)*mat(3,2))
+      mat_res(1,3) =   mat(1,2)*mat(2,3) - mat(1,3)*mat(2,2)
+      mat_res(2,1) = -(mat(2,1)*mat(3,3) - mat(2,3)*mat(3,1))
+      mat_res(2,2) =   mat(1,1)*mat(3,3) - mat(1,3)*mat(3,1)
+      mat_res(2,3) = -(mat(1,1)*mat(2,3) - mat(1,3)*mat(2,1))
+      mat_res(3,1) =   mat(2,1)*mat(3,2) - mat(2,2)*mat(3,1)
+      mat_res(3,2) = -(mat(1,1)*mat(3,2) - mat(1,2)*mat(3,1))
+      mat_res(3,3) =   mat(1,1)*mat(2,2) - mat(1,2)*mat(2,1)
+
+      mat_res = mat_res/deter_mat
    end subroutine
 end module superposition

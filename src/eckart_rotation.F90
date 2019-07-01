@@ -11,6 +11,8 @@ module eckart_rotation
    use kinds
    use parameters
    use input_file
+   use file_info, only: file
+   use output_module, only: output_xyz_file
    use chemistry, only: atomic_masses
 
    implicit none
@@ -31,6 +33,8 @@ contains
 
       integer :: i
 
+      type(file) :: f1, f2
+
       character(len=30) :: orientation
 
       orientation = "original"
@@ -39,6 +43,15 @@ contains
          description="Orientation of the first atom", &
          expected=(/"original",&
                     "eckart  "/))
+
+      f1 = file(20, "old_1.xyz", "xyz")
+      f2 = file(21, "new_1.xyz", "xyz")
+
+      call open_File(f1, "write")
+
+      call output_xyz_file(f1, atoms, coord, n)
+
+      call close_file(f1)
 
       if(trim(orientation) == "eckart") then
 
@@ -61,6 +74,13 @@ contains
          deallocate(tmp_coord)
 
       end if
+
+
+      call open_File(f2, "write")
+
+      call output_xyz_file(f2, atoms, coord, n)
+
+      call close_file(f2)
 
    end subroutine
 

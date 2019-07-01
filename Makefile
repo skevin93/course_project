@@ -26,6 +26,7 @@ FILES =  various/kinds.F90           \
 		   various/parameters.F90      \
 			tools/string_tools.F90      \
 			in_out/file_info.F90        \
+			in_out/output_module.F90    \
 			in_out/input_file.F90       \
 			system_info.F90             \
 			chemistry.F90               \
