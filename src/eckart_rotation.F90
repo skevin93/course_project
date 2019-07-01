@@ -49,7 +49,7 @@ contains
 
       call open_File(f1, "write")
 
-      call output_xyz_file(f1, atoms, coord, n)
+      call output_xyz_file(f1, atoms, coord, n, comment="r_0")
 
       call close_file(f1)
 
@@ -78,7 +78,7 @@ contains
 
       call open_File(f2, "write")
 
-      call output_xyz_file(f2, atoms, coord, n)
+      call output_xyz_file(f2, atoms, coord, n, comment="T*r_0")
 
       call close_file(f2)
 

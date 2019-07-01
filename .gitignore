@@ -4,3 +4,4 @@ bin/
 .swp
 duschinsky
 output.out
+*.xyz

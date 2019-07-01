@@ -101,14 +101,13 @@ contains
          weight = one/n_atoms
 
       end if
-      print*, weight
 
-      call calc_q(weight, r_1, r_0, q, num_atoms)
+      call calc_q(weight, r_0, r_1, q, num_atoms)
 
-      call build_rotation_matrix(q, D)
+      call build_rotation_matrix(r_0, r_1, q, D)
 
       allocate(result(3,n_atoms))
-      call dgemm("N", "N", 3, n_atoms, 3, one, D, 3, coord_2, 3, zero, result, 3)
+      call dgemm("N", "N", 3, n_atoms, 3, one, D, 3, coord_1, 3, zero, result, 3)
 
       f1 = file(21, "old_2.xyz", "xyz")
       f2 = file(22, "new_2.xyz", "xyz")
@@ -116,8 +115,8 @@ contains
       call open_file(f1, "write")
       call open_file(f2, "write")
 
-      call output_xyz_file(f1, atoms, coord_2, n_atoms)
-      call output_xyz_file(f2, atoms, result, n_atoms)
+      call output_xyz_file(f1, atoms, coord_2, n_atoms, comment="r_1")
+      call output_xyz_file(f2, atoms, result, n_atoms, comment="D*r_0")
 
       call close_file(f1)
       call close_file(f2)
@@ -133,7 +132,7 @@ contains
       integer, intent(in) :: n
       real(dp), intent(in) :: w(:)
       real(dp), intent(in) :: r_0(:,:), r_1(:,:)
-      real(dp), intent(out), dimension(:) :: q
+      real(dp), intent(out), dimension(4) :: q
 
       real(dp) :: M(4,4)
       integer :: i, info
@@ -196,7 +195,7 @@ contains
 
    end subroutine
 
-   subroutine build_rotation_matrix(q, D_check)
+   subroutine build_rotation_matrix(r_0, r_1, q, D_check)
 
       implicit none
 
@@ -204,7 +203,9 @@ contains
       real(dp), intent(out) :: D_check(3,3)
 
       real(dp) :: q_sq(0:3), atan30, atan12, alpha, beta, gamma
-      real(dp), dimension(3,3) :: D, Rx, Ry, Rz
+      real(dp), dimension(:,:) :: r_0, r_1
+      real(dp) :: vec(size(r_0,1),size(r_0,2))
+      real(dp), dimension(3,3) :: D, Rz1, Ry, Rz2
       integer :: i
 
       q_sq(0) = q(0)*q(0)
@@ -235,40 +236,45 @@ contains
       print*, "β = ", beta/pi*180
       print*, "γ = ", gamma/pi*180
 
-      Rx(1,:) = (/one,        zero,        zero/)
-      Rx(2,:) = (/zero, cos(gamma), -sin(gamma)/)
-      Rx(3,:) = (/zero, sin(gamma),  cos(gamma)/)
+      Rz2(1,:) = (/cos(gamma), -sin(gamma), zero/)
+      Rz2(2,:) = (/sin(gamma),  cos(gamma), zero/)
+      Rz2(3,:) = (/      zero,        zero,  one/)
 
       Ry(1,:) = (/ cos(beta),  zero, sin(beta)/)
       Ry(2,:) = (/      zero,   one,      zero/)
       Ry(3,:) = (/-sin(beta),  zero, cos(beta)/)
 
-      Rz(1,:) = (/cos(alpha), -sin(alpha), zero/)
-      Rz(2,:) = (/sin(alpha),  cos(alpha), zero/)
-      Rz(3,:) = (/      zero,        zero,  one/)
+      Rz1(1,:) = (/cos(alpha), -sin(alpha), zero/)
+      Rz1(2,:) = (/sin(alpha),  cos(alpha), zero/)
+      Rz1(3,:) = (/      zero,        zero,  one/)
 
 
-      D_check = matmul(Ry, Rz)
+      D_check = matmul(Ry, Rz1)
 
-      D_check = matmul(Rz, D_check)
+      D_check = matmul(Rz2, D_check)
 
       print'(/1x, "det(",a,"): ", f0.6)', "D", deter(D)
       print*, "D matrix:"
-      print'(3(F12.6))', (D(i,:), i=1, 3)
+      print'(3F12.6)', (D(i,:), i=1, 3)
 
       call inverse(D, Ry)
       Ry = Ry - transpose(D)
       print*, "D-1 matrix:"
-      print'(3(F12.6))', (Ry(i,:), i=1, 3)
+      print'(3F12.6)', (Ry(i,:), i=1, 3)
 
 
       print'(/1x, "det(",a,"): ", f0.6)', "D_check", deter(D_check)
       print*, "D matrix:"
-      print'(3(F12.6))', (D_check(i,:), i=1, 3)
+      print'(3F12.6)', (D_check(i,:), i=1, 3)
 
       call inverse(D_check, Ry)
       print'(/1x, a)', "D-1 matrix:"
-      print'(3(F12.6))', (Ry(i,:), i=1, 3)
+      print'(3F12.6)', (Ry(i,:), i=1, 3)
+
+      vec = matmul(D_check, r_0)
+
+      print'(/,2a36)', "r_0", "r_1"
+      print'(6F12.6)', (vec(:,i), r_1(:,i), i=1, size(vec,2))
    end subroutine
 
    pure function deter(mat)
