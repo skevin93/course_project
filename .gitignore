@@ -6,5 +6,4 @@ duschinsky
 output.out
 *.xyz
 *.dat
-*.ipynb
-*.py
+.ipynb_checkpoints/
