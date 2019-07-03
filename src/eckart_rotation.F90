@@ -37,12 +37,12 @@ contains
 
       character(len=30) :: orientation
 
-      orientation = "original"
+      orientation = "eckart"
 
       call read_var("orientation", orientation, &
          description="Orientation of the first atom", &
-         expected=(/"original",&
-                    "eckart  "/))
+         expected=(/"eckart  ",&
+                    "original"/))
 
       f1 = file(20, "old_1.xyz", "xyz")
       f2 = file(21, "new_1.xyz", "xyz")

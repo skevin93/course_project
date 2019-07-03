@@ -5,3 +5,6 @@ bin/
 duschinsky
 output.out
 *.xyz
+*.dat
+*.ipynb
+*.py

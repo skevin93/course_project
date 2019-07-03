@@ -21,7 +21,8 @@ module gaussian_input
    interface gaussian_var
 
       module procedure read_var_real, read_var_int, read_var_char, read_var_logical, &
-                       read_array_real, read_array_int, read_array_char, read_array_logical
+                       read_array_real, read_array_int, read_array_char, read_array_logical, &
+                       read_array_2_real
 
    end interface
 
@@ -222,6 +223,41 @@ contains
       read(the_file%unit_, logical_array_format) var
 
    end subroutine read_array_logical
+
+   subroutine read_array_2_real(the_file, var, n_array)
+      implicit none
+
+      type(file), intent(in) :: the_file
+
+      real(dp), intent(inout) :: var(:,:)
+      integer, intent(in) :: n_array
+
+      integer :: i, j, n, offset
+      real(dp) :: tmp_array(n_array)
+
+      read(the_file%unit_, real_array_format) tmp_array
+
+      i = 0
+      j = 0
+      offset = 0
+
+      n = size(var, 1)
+
+      do while(offset < n_array)
+
+         i = i+1
+         do j=1, i
+            offset = int(i*(i-1)/2) + j
+            if(i == j) then
+               var(i,i) = tmp_array(offset)
+            else
+               var(i,j) = tmp_array(offset)
+               var(j,i) = tmp_array(offset)
+            end if
+         end do
+      end do
+
+   end subroutine
 
    subroutine gaussian_section(the_file, section_title, section_method, section_basis)
 !!

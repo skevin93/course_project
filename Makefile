@@ -26,14 +26,15 @@ FILES =  various/kinds.F90           \
 		   various/parameters.F90      \
 			tools/string_tools.F90      \
 			in_out/file_info.F90        \
-			in_out/output_module.F90    \
 			in_out/input_file.F90       \
+			in_out/output_module.F90    \
 			system_info.F90             \
 			chemistry.F90               \
-			eckart_rotation.F90         \
-			superposition.F90           \
 			external/gaussian_input.F90 \
 			external/external_files.F90 \
+			eckart_rotation.F90         \
+			superposition.F90           \
+			duschinsky_tools.F90        \
 		   $(OBJ).F90
 
 SRC_FILES := $(addprefix $(SRC_DIR)/,$(FILES))

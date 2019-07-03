@@ -8,16 +8,18 @@ module system_info
    end type
 
    integer, allocatable, target :: atoms(:)
+   real(dp), allocatable :: weight(:)
+
    integer :: n_atoms
    type(info) :: system_1, system_2
 
    real(dp), allocatable :: coord_1(:,:)
    real(dp), allocatable :: coord_2(:,:)
 
-   real(dp), allocatable, dimension(:) :: force_constant_1
-   real(dp), allocatable, dimension(:) :: force_constant_2
+   real(dp), allocatable, dimension(:,:) :: force_constant_1
+   real(dp), allocatable, dimension(:,:) :: force_constant_2
 
    real(dp), allocatable, dimension(:) :: shift_vector
-   real(dp), allocatable, dimension(:) :: matrix_duschinsky
+   real(dp), allocatable, dimension(:,:) :: matrix_duschinsky
 
 end module system_info

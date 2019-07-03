@@ -16,7 +16,7 @@ module superposition
 
 contains
 
-   subroutine superposition_second(atoms, coord_1, coord_2, n_atoms)
+   subroutine superposition_second(atoms, weight, coord_1, coord_2, n_atoms)
 !!
 !!    Superposition of second system
 !!    Written by Marco Scavino, June 2019
@@ -27,12 +27,14 @@ contains
 
       integer, intent(in) :: n_atoms
       integer, intent(in), dimension(n_atoms) :: atoms
-      real(dp), intent(in), target, dimension(3,n_atoms) :: coord_1, coord_2
+      real(dp), intent(in), target, dimension(n_atoms) :: weight
+      real(dp), intent(in), target, dimension(3,n_atoms) :: coord_1
+      real(dp), intent(inout), target, dimension(3,n_atoms) :: coord_2
 
       integer, allocatable :: atoms_indexes(:)
       real(dp), pointer    :: r_0(:,:), r_1(:,:)
       character(len=30) :: superposition, maximize
-      real(dp), allocatable :: weight(:), result(:,:)
+      real(dp), allocatable :: curr_weight(:), result(:,:)
       real(dp) :: total_weight, q(4), D(3,3)
       integer :: i, num_atoms, Z
       
@@ -55,7 +57,7 @@ contains
 
          num_atoms = 3
 
-         allocate(weight(num_atoms))
+         allocate(curr_weight(num_atoms))
          allocate(atoms_indexes(num_atoms))
 
          allocate(r_0(3,num_atoms))
@@ -65,25 +67,18 @@ contains
             description="Insert the three atom index to superpose", &
             required=.true.)
 
-         do i=1, num_atoms
-            r_0(:,i) = coord_1(:,atoms_indexes(i))
-            r_1(:,i) = coord_2(:,atoms_indexes(i))
-
-            Z = atoms(atoms_indexes(i))
-            weight(i) = atomic_masses(Z)
-
-         end do
-
+         
+         r_0 = coord_1(:,atoms_indexes)
+         r_1 = coord_1(:,atoms_indexes)
+         curr_weight = curr_weight(atoms_indexes)
 
          deallocate(atoms_indexes)
 
       else
 
-         allocate(weight(n_atoms))
+         allocate(curr_weight(n_atoms))
 
-         do i=1, n_atoms
-            weight = atomic_masses(atoms(i))
-         end do
+         curr_weight = weight
          r_0 => coord_1
          r_1 => coord_2
 
@@ -93,16 +88,16 @@ contains
       !  all the atoms. The weights are normalized to assure that Σ_α w_α = 1
       if(trim(superposition) == "masses") then
 
-         total_weight = sum(weight)
-         weight = weight/total_weight
+         total_weight = sum(curr_weight)
+         curr_weight = curr_weight/total_weight
 
       else
 
-         weight = one/n_atoms
+         curr_weight = one/n_atoms
 
       end if
 
-      call calc_q(weight, r_0, r_1, q, num_atoms)
+      call calc_q(curr_weight, r_0, r_1, q, num_atoms)
 
       call build_rotation_matrix(r_0, r_1, q, D)
 
@@ -120,6 +115,8 @@ contains
 
       call close_file(f1)
       call close_file(f2)
+
+      coord_2 = result
 
       deallocate(result)
 
@@ -224,7 +221,7 @@ contains
       D(3,1) = two*(q(1)*q(3) - q(0)*q(2))
       D(3,2) = two*(q(0)*q(1) + q(2)*q(3))
 
-      print*, "q·q = ", q(0)*q(0) + q(1)*q(1) + q(2)*q(2) + q(3)*q(3)
+      !print*, "q·q = ", q(0)*q(0) + q(1)*q(1) + q(2)*q(2) + q(3)*q(3)
 
       atan30 = atan(q(3)/q(0))
       atan12 = atan(q(1)/q(2))
@@ -232,9 +229,9 @@ contains
       alpha = atan30-atan12
       gamma = atan30+atan12
       beta  = q(0)/(cos((gamma+alpha)*half))
-      print*, "α = ", alpha/pi*180
-      print*, "β = ", beta/pi*180
-      print*, "γ = ", gamma/pi*180
+      !print*, "α = ", alpha/pi*180
+      !print*, "β = ", beta/pi*180
+      !print*, "γ = ", gamma/pi*180
 
       Rz2(1,:) = (/cos(gamma), -sin(gamma), zero/)
       Rz2(2,:) = (/sin(gamma),  cos(gamma), zero/)
@@ -253,28 +250,28 @@ contains
 
       D_check = matmul(Rz2, D_check)
 
-      print'(/1x, "det(",a,"): ", f0.6)', "D", deter(D)
-      print*, "D matrix:"
-      print'(3F12.6)', (D(i,:), i=1, 3)
+      ! print'(/1x, "det(",a,"): ", f0.6)', "D", deter(D)
+      !print*, "D matrix:"
+      ! print'(3F12.6)', (D(i,:), i=1, 3)
 
       call inverse(D, Ry)
       Ry = Ry - transpose(D)
-      print*, "D-1 matrix:"
-      print'(3F12.6)', (Ry(i,:), i=1, 3)
+      !print*, "D-1 matrix:"
+      ! print'(3F12.6)', (Ry(i,:), i=1, 3)
 
 
-      print'(/1x, "det(",a,"): ", f0.6)', "D_check", deter(D_check)
-      print*, "D matrix:"
-      print'(3F12.6)', (D_check(i,:), i=1, 3)
+      ! print'(/1x, "det(",a,"): ", f0.6)', "D_check", deter(D_check)
+      !print*, "D matrix:"
+      ! print'(3F12.6)', (D_check(i,:), i=1, 3)
 
       call inverse(D_check, Ry)
-      print'(/1x, a)', "D-1 matrix:"
-      print'(3F12.6)', (Ry(i,:), i=1, 3)
+      ! print'(/1x, a)', "D-1 matrix:"
+      ! print'(3F12.6)', (Ry(i,:), i=1, 3)
 
       vec = matmul(D_check, r_0)
 
-      print'(/,2a36)', "r_0", "r_1"
-      print'(6F12.6)', (vec(:,i), r_1(:,i), i=1, size(vec,2))
+      ! print'(/,2a36)', "r_0", "r_1"
+      ! print'(6F12.6)', (vec(:,i), r_1(:,i), i=1, size(vec,2))
    end subroutine
 
    pure function deter(mat)

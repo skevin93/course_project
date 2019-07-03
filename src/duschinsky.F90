@@ -3,8 +3,9 @@ program duschinsky
    use input_file,     only: check_interactive, read_var
    use file_info,      only: open_file, input, output
    use external_files, only: get_external
-   use eckart_rotation, only: first_rotation
-   use superposition,   only: superposition_second
+   use eckart_rotation,  only: first_rotation
+   use superposition,    only: superposition_second
+   use duschinsky_tools, only: duschinsky_matrix
 
    use system_info
 
@@ -28,6 +29,8 @@ program duschinsky
 
    call first_rotation(atoms, coord_1, n_atoms)
 
-   call superposition_second(atoms, coord_1, coord_2, n_atoms)
+   call superposition_second(atoms, weight, coord_1, coord_2, n_atoms)
+
+   call duschinsky_matrix(atoms, weight, coord_1, coord_2, force_constant_1, force_constant_2, n_atoms)
 
 end program duschinsky

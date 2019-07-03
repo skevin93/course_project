@@ -61,12 +61,14 @@ contains
 !!    Read the atomic number list from each input files and compare them.
 !!    If the to system are different, throw an error and suspend the program.
 !!
-      use system_info, only: atoms
+      use system_info, only: atoms, weight
 
       implicit none
 
-      integer, allocatable :: atoms_tmp(:)
+      integer, allocatable :: tmp_atoms(:)
+      real(dp), dimension(:), allocatable :: tmp_weight
       integer :: n2
+      real(dp), parameter :: tolerance = 1.0E-6
 
       !Read array from gaussian input
       call gaussian_array_num(external_1, "Atomic numbers", "I", n_atoms)
@@ -80,16 +82,38 @@ contains
          call output_error_msg("Different number of atoms!")
       end if
 
-      allocate(atoms_tmp(n2))
-      call gaussian_var(external_2, atoms_tmp)
+      allocate(tmp_atoms(n2))
+      call gaussian_var(external_2, tmp_atoms)
 
-      if( .not. all(atoms == atoms_tmp)) then
+      if( .not. all(atoms == tmp_atoms)) then
 
          call output_error_msg("Two input have different number of atoms!")
 
       end if
+      deallocate(tmp_atoms)
 
-      deallocate(atoms_tmp)
+      !Read array from gaussian input
+      call gaussian_array_num(external_1, "Real atomic weights", "R", n_atoms)
+
+      allocate(weight(n_atoms))
+      call gaussian_var(external_1, weight)
+
+      call gaussian_array_num(external_2, "Real atomic weights", "R", n2)
+
+      if(n_atoms /= n2) then
+         call output_error_msg("Different number of atoms!")
+      end if
+
+      allocate(tmp_weight(n2))
+      call gaussian_var(external_2, tmp_weight)
+
+      if(.not. all(abs(weight-tmp_weight)<tolerance)) then
+
+         call output_error_msg("Two input have different weight!")
+
+      end if
+
+      deallocate(tmp_weight)
 
    end subroutine sanity_check_external
 
@@ -102,9 +126,9 @@ contains
 
       call gaussian_array_num(external_1, "Cartesian force constants", "R", n)
 
-      allocate(force_constant_1(n))
+      allocate(force_constant_1(3*n_atoms, 3*n_atoms))
 
-      call gaussian_var(external_1, force_constant_1)
+      call gaussian_var(external_1, force_constant_1, n)
 
       call gaussian_array_num(external_1, "Current cartesian coordinates", "R", n)
 
@@ -118,9 +142,9 @@ contains
 
       call gaussian_array_num(external_2, "Cartesian force constants", "R", n)
 
-      allocate(force_constant_2(n))
+      allocate(force_constant_2(3*n_atoms, 3*n_atoms))
 
-      call gaussian_var(external_2, force_constant_2)
+      call gaussian_var(external_2, force_constant_2, n)
 
       call gaussian_array_num(external_2, "Current cartesian coordinates", "R", n)
 

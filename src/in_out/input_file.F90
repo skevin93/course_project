@@ -7,7 +7,11 @@ module input_file
 !!    that take the following arguments:
 !!
 !!       * `var_title`, the keyword it will search in the input file
-!!       * `var`, returned variable
+!!       * `var`, returned variable. Can be one of the following type:
+!!          + character (variable)
+!!          + integer (variable or array)
+!!          + real (variable)
+!!          + logical (variable)
 !!       * `description`, a description of the input, printed in interactive mode
 !!       * `expected` (optional, only char version), a list of expected values from the variable. If user enters unexpected
 !!          values, it will print an error, followed by the list
@@ -43,12 +47,6 @@ contains
       call read_var("interactive", interactive)
 
       if(interactive) write(*,*) "INTERACTIVE MODE"
-
-      ! call read_var("result", result, &
-      !    description="Result to print", &
-      !    expected=(/"matrix", &
-      !               "shift ", &
-      !               "both  "/))
 
    end subroutine check_interactive
 
