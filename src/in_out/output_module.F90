@@ -1,12 +1,12 @@
 module output_module
 
-   use file_info
+   use file_info, only: output
    use input_file
    use kinds
 
    implicit none
 
-   character(len=*), parameter :: real_format = "F16.8"
+   character(len=*), private, parameter :: real_format = "F16.8"
 
    interface write_output
 

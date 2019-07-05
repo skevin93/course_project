@@ -1,7 +1,7 @@
 program duschinsky
 
-   use input_file,     only: check_interactive, read_var
-   use file_info,      only: open_file, input, output
+   use input_file,     only: read_argument, read_var
+   ! use file_info,      only: open_file, input, output
    use external_files, only: get_external
    use eckart_rotation,  only: first_rotation
    use superposition,    only: superposition_second
@@ -13,10 +13,7 @@ program duschinsky
 
    character(len=30) :: program_name
 
-   call open_file(output, "write")
-   call open_file(input,  "read")
-
-   call check_interactive()
+   call read_argument()
 
    program_name = "gaussian"
 
@@ -31,6 +28,6 @@ program duschinsky
 
    call superposition_second(atoms, weight, coord_1, coord_2, n_atoms)
 
-   call duschinsky_matrix(atoms, weight, coord_1, coord_2, force_constant_1, force_constant_2, n_atoms)
+   call duschinsky_matrix(weight, coord_1, coord_2, force_constant_1, force_constant_2, n_atoms)
 
 end program duschinsky

@@ -36,7 +36,7 @@ contains
       character(len=30) :: superposition, maximize
       real(dp), allocatable :: curr_weight(:), result(:,:)
       real(dp) :: total_weight, q(4), D(3,3)
-      integer :: i, num_atoms, Z
+      integer :: num_atoms
       
       type(file) :: f1, f2
 
@@ -99,7 +99,7 @@ contains
 
       call calc_q(curr_weight, r_0, r_1, q, num_atoms)
 
-      call build_rotation_matrix(r_0, r_1, q, D)
+      call build_rotation_matrix(q, D)
 
       allocate(result(3,n_atoms))
       call dgemm("N", "N", 3, n_atoms, 3, one, D, 3, coord_1, 3, zero, result, 3)
@@ -182,7 +182,8 @@ contains
 
          if (info /= 0) then
          
-            call output_error_msg('Diagonalizing M matrix for superposition failed')
+            
+            call output_error_msg('Diagonalizing M matrix for superposition failed', error=info)
          
          end if
 
@@ -192,7 +193,7 @@ contains
 
    end subroutine
 
-   subroutine build_rotation_matrix(r_0, r_1, q, D_check)
+   subroutine build_rotation_matrix(q, D_check)
 
       implicit none
 
@@ -200,10 +201,7 @@ contains
       real(dp), intent(out) :: D_check(3,3)
 
       real(dp) :: q_sq(0:3), atan30, atan12, alpha, beta, gamma
-      real(dp), dimension(:,:) :: r_0, r_1
-      real(dp) :: vec(size(r_0,1),size(r_0,2))
       real(dp), dimension(3,3) :: D, Rz1, Ry, Rz2
-      integer :: i
 
       q_sq(0) = q(0)*q(0)
       q_sq(1) = q(1)*q(1)
@@ -266,9 +264,7 @@ contains
 
       call inverse(D_check, Ry)
       ! print'(/1x, a)', "D-1 matrix:"
-      ! print'(3F12.6)', (Ry(i,:), i=1, 3)
-
-      vec = matmul(D_check, r_0)
+      ! print'(3F12.6)', (Ry(i,:), i=1, 3
 
       ! print'(/,2a36)', "r_0", "r_1"
       ! print'(6F12.6)', (vec(:,i), r_1(:,i), i=1, size(vec,2))

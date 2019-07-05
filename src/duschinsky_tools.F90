@@ -11,7 +11,7 @@ module duschinsky_tools
 
 contains
 
-   subroutine duschinsky_matrix(atoms, weight, coord_1, coord_2, L_matr_1, L_matr_2, n_atoms)
+   subroutine duschinsky_matrix(weight, coord_1, coord_2, L_matr_1, L_matr_2, n_atoms)
 !!
 !!    Calc duschinsky
 !!    Written by Marco Scavino, July 2019
@@ -19,14 +19,14 @@ contains
       implicit none
 !
       integer, intent(in) :: n_atoms
-      integer, intent(in) :: atoms(:)
+      ! integer, intent(in) :: atoms(:)
       real(dp), intent(in), dimension(:) :: weight
       real(dp), intent(in), dimension(:,:) :: coord_1, coord_2
       real(dp), intent(inout), dimension(:,:) :: L_matr_1, L_matr_2
 
-      integer :: info, n, i, j
+      integer :: n, i, j
       real(dp), allocatable :: J_matr(:,:), K_shift(:), tmp(:)
-      real(dp), allocatable :: sqrt_weight(:), q_1(:,:), q_2(:,:)
+      real(dp), allocatable :: sqrt_weight(:)
 
       character(len=30) :: result
 
@@ -155,10 +155,11 @@ contains
       
       character(len=30) :: info
       integer :: i, n
-      real(dp), pointer :: K_tmp(:,:)
       real(dp) :: max_displ, average_displ, sigma, tmp
 
       info  = "full"
+
+      n = 3*n_atoms
 
       call read_var("matrix", info, &
          description="Matrix info", &

@@ -1,11 +1,28 @@
 
 # set the compiler and proper flags
-FC     ?= gfortran
-FC_FLAGS       ?= -std=f95 -Wall
+FC ?= gfortran
+
+ifeq ($(FC), gfortran)
+   FC_FLAGS ?= -J$(MOD_DIR) -std=f95 -Wall -fall-intrinsics
+   FC_INC    =
+   FC_LIB = -lblas -llapack
+
+else # if($(FC), ifort)
+   FC_FLAGS ?= -module $(MOD_DIR) -warn all -std95
+   FC_INC    = -I${MKLROOT}/include/intel64/lp64 \
+					-I${MKLROOT}/include
+   FC_LIB    = ${MKLROOT}/lib/intel64/libmkl_blas95_lp64.a   \
+					${MKLROOT}/lib/intel64/libmkl_lapack95_lp64.a \
+					 -Wl,--start-group                            \
+					 ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a   \
+					 ${MKLROOT}/lib/intel64/libmkl_intel_thread.a \
+					 ${MKLROOT}/lib/intel64/libmkl_core.a         \
+					 -Wl,--end-group                               \
+					 -liomp5 -lpthread -lm -ldl
+endif
+
 STANDARD_FLAGS ?= -O3
 DEBUG_FLAGS    ?= -Og
-FC_INC =
-FC_LIB = -lblas -llapack
 
 #set object
 OBJ = duschinsky
@@ -23,7 +40,7 @@ SCRIPT_DIR = script
 # from another, simple put it after the dependance in the list
 
 FILES =  various/kinds.F90           \
-		   various/parameters.F90      \
+			various/parameters.F90      \
 			tools/string_tools.F90      \
 			in_out/file_info.F90        \
 			in_out/input_file.F90       \
@@ -35,7 +52,7 @@ FILES =  various/kinds.F90           \
 			eckart_rotation.F90         \
 			superposition.F90           \
 			duschinsky_tools.F90        \
-		   $(OBJ).F90
+			$(OBJ).F90
 
 SRC_FILES := $(addprefix $(SRC_DIR)/,$(FILES))
 SRC_OBJS := $(patsubst %.F90,$(OBJ_DIR)/%.o,$(FILES))
@@ -50,14 +67,11 @@ all: directories $(BIN_DIR)/$(OBJ)
 debug: FC_FLAGS += $(DEBUG_FLAGS)
 debug: directories $(BIN_DIR)/$(OBJ)
 
-test:
-
-
 $(BIN_DIR)/$(OBJ): $(SRC_OBJS)
-	$(FC) $(FC_FLAGS) -J$(MOD_DIR) -o $@ $^ $(FC_LIB)
+	$(FC) $(FC_FLAGS) -o $@ $^ $(FC_LIB)
 
 $(SRC_OBJS):$(OBJ_DIR)/%.o: $(SRC_DIR)/%.F90
-	$(FC) $(FC_FLAGS) -J$(MOD_DIR) -c -o $@ $^ $(FC_LIB)
+	$(FC) $(FC_FLAGS) -c -o $@ $^
 
 # make the directories for necessary build
 directories:
@@ -68,3 +82,6 @@ directories:
 
 clean:
 	rm -rf $(OBJ_DIR) $(MOD_DIR) $(BIN_DIR)/$(OBJ)
+
+clean_output:
+	rm -rf *.xyz *.dat

@@ -34,7 +34,7 @@ module input_file
 
 contains
 
-   subroutine check_interactive()
+   subroutine read_argument()
 !!
 !!    Check interactive mode
 !!    Writte by Marco Scavino, June 2019
@@ -44,11 +44,80 @@ contains
 !!
       implicit none
 
-      call read_var("interactive", interactive)
+      integer :: n_args
+      character(len=30) :: buffer, command
+
+#ifdef __INTEL_COMPILER
+      interface
+         integer function iargc()
+         end function
+      end interface
+      external :: getarg
+#endif
+      call getarg(0, command)
+      call open_file(output, "write")
+
+      n_args = iargc()
+
+      if(n_args == 0) then
+
+         interactive = .true.
+
+      else
+
+         call getarg(1,buffer)
+
+         select case(trim(buffer))
+         case("-h")
+            call print_help(command,    &
+               options=(/ "-h   ", "-I   "/), &
+               descr=(/                 &
+                  "Print this help ",   &
+                  "Interactive mode" /) )
+            stop
+
+         case("-I")
+            interactive = .true.
+         case default
+            input%name_ = adjustl(buffer)
+         end select
+
+         call open_file(input, "read")
+      end if
 
       if(interactive) write(*,*) "INTERACTIVE MODE"
 
-   end subroutine check_interactive
+   end subroutine read_argument
+
+   subroutine print_help(command, options, descr)
+      implicit none
+
+      character(len=*), intent(in) :: command
+      character(len=*), intent(in), dimension(:) :: options, descr
+
+      character(len=30) :: name
+      integer :: i
+
+      call get_filename(command, name)
+
+      write(*,'(a,a)', advance="no") "Usage: ", trim(name)
+
+      if (size(options) > 0) then
+         write(*,'(1x,"[",a)', advance="no") trim(options(1))
+         do i=2, size(options)
+            write(*,'("|",a)', advance="no") trim(options(i))
+         end do
+         write(*,'("]")', advance="no")
+      end if
+      write(*,'(1x,a)') "[input_file]"
+
+      write(*,'(/1x,a)') "If no file is provided, it starts the interactive mode"
+      write(*,*)
+
+      do i=1, size(options)
+         write(*,'(t3,a5,1x,a)') adjustl(options(i)), trim(descr(i))
+      end do
+   end subroutine
 
    subroutine read_var_real(var_title, var, description, required)
 !!
@@ -169,7 +238,10 @@ contains
          if(trim(var) == trim(expected(i))) return
       end do
 
-      call output_error_msg("Variable value """ // trim(var) // """ not correct!", expected, line)
+      call output_error_msg("Variable value """ // trim(var) // """ not correct!", &
+         required=expected, &
+         filename=input%name_, &
+         line=line)
 
    end subroutine read_var_char
 
@@ -228,7 +300,7 @@ contains
       character(len=*), intent(in), optional :: description
       logical, intent(in), optional :: required
 
-      character(len=30) :: var_answer
+      character(len=50) :: var_answer
       integer :: i, j, f_error
       logical :: var_required
 
@@ -264,8 +336,9 @@ contains
       end do
 
       if(j < size(var))then
-         write(*,'(1x,a,i0,a, i0)') "Error: """ // var_title // """ expects ", size(var), " entries, but get only ", j
-         stop
+
+         write(var_answer, '("""",a,""" expects ", i0, " entries, but get only ",i0)') var_title, size(var), j
+         call output_error_msg(var_answer)
       end if
    end subroutine
 

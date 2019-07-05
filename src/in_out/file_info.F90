@@ -16,8 +16,8 @@ module file_info
       character(len=30) :: type_ = ""
    end type file
 
-   type(file) :: input  = file(11, "input.inp", "inp")
-   type(file) :: output = file(12, "output.out", "out")
+   type(file), save :: input  = file(11, "input.inp", "inp")
+   type(file), save :: output = file(12, "output.out", "out")
 
 !
 ! detect if windows system and in case, set the path
@@ -100,8 +100,8 @@ contains
       implicit none
 
       character(len=*), intent(in) :: file_path
-      character(len=20), intent(out) :: file_name
-      character(len=10), intent(out), optional :: file_ext
+      character(len=*), intent(out) :: file_name
+      character(len=*), intent(out), optional :: file_ext
 
       integer :: i, name_pos, ext_pos
 
@@ -115,6 +115,8 @@ contains
             ext_pos = i
          end if
       end do
+
+      if(ext_pos<name_pos) ext_pos = len_trim(file_path)
 
       if(present(file_ext)) then
 
@@ -131,20 +133,25 @@ contains
 
    end subroutine
 
-   subroutine output_error_msg(message, required, line)
+   subroutine output_error_msg(message, error, required, filename, line)
 
       implicit none
 
       character(len=*), intent(in) :: message
-      character(len=*), intent(in), optional :: required(:)
-      integer, intent(in), optional :: line
+      character(len=*), intent(in), optional :: required(:), filename
+      integer, intent(in), optional :: line, error
 
       integer :: i
 
-      write(*, '(1x, "Error:",1x,a)', advance='no') trim(message)
+      write(*, '(1x, a)', advance='no') "Error"
+      
+      if(present(error)) write(*,'("(",i0,")")', advance="no") error
+      
+      write(*,'(":",1x,a)', advance='no') trim(message)
 
-      if(present(line)) then
-         write(*, '(1x,"on line",1x,i0)', advance='no') line
+      if(present(filename)) then
+         write(*, '(a)', advance='no') " on " // trim(filename)
+         if(present(line)) write(*, '(":",i0)', advance="no") line
       end if
 
       write(*,*)
@@ -201,7 +208,7 @@ contains
 
          line = adjustl(line)
 
-         do i=1, len_trim(line)
+         do i=1, len_trim(line)+1
 
             if(line(i:i) == "") then
 
@@ -218,11 +225,7 @@ contains
                   if(present(var)) then
                   
                      ! Finally, return the variable
-                     if(trim(line(i:)) /= "") then
-                        
-                        var = trim(adjustl(line(i:)))
-
-                     end if
+                     var = trim(adjustl(line(i:)))
 
                   end if
                   
@@ -238,12 +241,15 @@ contains
 
       if(required .and. .not. var_found) then
          call output_error_msg("Required variable """ // trim(var_title) // &
-            """ not found!")
+            """ not found!", filename=the_file%name_)
       end if
 
-      if(present(var)) then
+      if(present(var) .and. var_found) then
+
          if(trim(var) == "") then
-            call output_error_msg("Variable """ // trim(var_title) // """ empty", line=num)
+            call output_error_msg("Variable """ // trim(var_title) // """ empty", &
+               filename=the_file%name_, &
+               line=num)
          end if
       end if
 

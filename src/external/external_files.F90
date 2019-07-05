@@ -7,8 +7,8 @@ module external_files
 
    implicit none
 
-   type(file) :: external_1 = file(14, "", "")
-   type(file) :: external_2 = file(15, "", "")
+   type(file), save :: external_1 = file(14, "", "")
+   type(file), save :: external_2 = file(15, "", "")
 
 contains
 
