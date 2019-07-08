@@ -55,7 +55,6 @@ contains
       external :: getarg
 #endif
       call getarg(0, command)
-      call open_file(output, "write")
 
       n_args = iargc()
 
@@ -82,8 +81,15 @@ contains
             input%name_ = adjustl(buffer)
          end select
 
-         call open_file(input, "read")
+         if(n_args == 2) then
+            call getarg(2, buffer)
+            output%name_ = adjustl(buffer)
+         end if
       end if
+
+      ! Open input and output file after get the information form command line
+      call open_file(output, "write")
+      call open_file(input, "read")
 
       if(interactive) write(*,*) "INTERACTIVE MODE"
 
@@ -109,7 +115,7 @@ contains
          end do
          write(*,'("]")', advance="no")
       end if
-      write(*,'(1x,a)') "[input_file]"
+      write(*,'(2(1x,a))') "[input_file]", "[output_file]"
 
       write(*,'(/1x,a)') "If no file is provided, it starts the interactive mode"
       write(*,*)

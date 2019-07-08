@@ -14,7 +14,11 @@ $ make [-j4]
 ```
 This will generate the `duschinsky` executable inside the directory
 
-Run the test set:
+##Execute duschinky
+Once compiled, you can launch the executable simply with
 ```
-$ ctest [-j4]
+./duschinsky [-h|-I] [input.inp] [output.out]
 ```
+There are two possible options:
+   * -h, which print a brief help
+   * -I, which toggle the interactive mode

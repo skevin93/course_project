@@ -3,7 +3,7 @@ bin/
 .vscode/
 .swp
 duschinsky
-output.out
+*.out
 *.xyz
 *.dat
 .ipynb_checkpoints/
