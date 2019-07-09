@@ -102,7 +102,7 @@ contains
       call build_rotation_matrix(q, D)
 
       allocate(result(3,n_atoms))
-      call dgemm("N", "N", 3, n_atoms, 3, one, D, 3, coord_1, 3, zero, result, 3)
+      call dgemm("T", "N", 3, n_atoms, 3, one, D, 3, coord_1, 3, zero, result, 3)
 
       f1 = file(21, "old_2.xyz", "xyz")
       f2 = file(22, "new_2.xyz", "xyz")
@@ -111,7 +111,7 @@ contains
       call open_file(f2, "write")
 
       call output_xyz_file(f1, atoms, coord_2, n_atoms, comment="r_1")
-      call output_xyz_file(f2, atoms, result, n_atoms, comment="D*r_0")
+      call output_xyz_file(f2, atoms, result,  n_atoms, comment="D*r_0")
 
       call close_file(f1)
       call close_file(f2)

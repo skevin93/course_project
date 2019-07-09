@@ -48,6 +48,7 @@ contains
       character(len=30) :: buffer, command
 
 #ifdef __INTEL_COMPILER
+!     Mandatory for ifort to work with iargc
       interface
          integer function iargc()
          end function
@@ -150,7 +151,6 @@ contains
 
          call get_stdin_var(description, var_answer)
 
-
       else
 
          if(present(required))  var_required = required
@@ -187,7 +187,6 @@ contains
       if(interactive) then
 
          call get_stdin_var(description, var_answer)
-
 
       else
 
@@ -362,7 +361,7 @@ contains
       character(len=*), intent(in), optional :: choices(:)
       character(len=*), intent(out) :: answer
 
-      integer :: i
+      integer :: i, error
 
       write(*,'(1x,a)', advance='no') description
 
@@ -370,6 +369,7 @@ contains
          if(len(choices) > 0) then
 
             write(*,'(1x,a, a)', advance='no') "(", trim(choices(1))
+
             do i=2, size(choices)
                write(*,'("/",a)', advance='no') trim(choices(i))
             end do
@@ -380,7 +380,16 @@ contains
       end if
 
       write(*, '(":",1x)', advance='no')
-      read(*,*)  answer
+      read(*,*, iostat=error, end=100)  answer
+
+      if(error /= 0) then
+         call output_error_msg("Wrong value in input!")
+      end if
+
+      return
+
+      ! If end-of-file (or Ctrl-C), simply stop the program (exit from iteractive mode without error)
+100   stop
 
    end subroutine
 

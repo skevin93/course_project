@@ -1,6 +1,6 @@
 
 # set the compiler and proper flags
-FC ?= gfortran
+FC = gfortran
 
 ifeq ($(FC), gfortran)
    FC_FLAGS ?= -J$(MOD_DIR) -std=f95 -Wall -fall-intrinsics

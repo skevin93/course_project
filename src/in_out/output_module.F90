@@ -127,7 +127,7 @@ contains
 
       write(the_file%unit_,'(i0)') n_atoms
 
-      write(the_file%unit_,'(a)') comment_line
+      write(the_file%unit_,'(a)') trim(comment_line)
       do i=1, n_atoms
          write(the_file%unit_,'(i4,3F10.6)') atoms(i), coord(:,i)
       end do
