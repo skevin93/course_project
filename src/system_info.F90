@@ -8,7 +8,7 @@ module system_info
    end type
 
    integer, allocatable, target :: atoms(:)
-   real(dp), allocatable :: weight(:)
+   real(dp), allocatable :: atomic_masses(:)
 
    integer :: n_atoms
    type(info) :: system_1, system_2

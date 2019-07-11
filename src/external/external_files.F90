@@ -16,12 +16,9 @@ contains
 
       implicit none
 
-      character(len=10) :: file_type
+      ! character(len=30), intent(in) :: program_name
 
-      ! call read_var("program", program_name, &
-      !    description="Select the program used for input file", &
-      !    expected=(/"gaussian", &
-      !               "dalton  "/))
+      character(len=10) :: file_type
 
       file_type = "fchk"
 
@@ -59,14 +56,15 @@ contains
 !!    Written by Marco Scavino, June 2019
 !!
 !!    Read the atomic number list from each input files and compare them.
-!!    If the to system are different, throw an error and suspend the program.
+!!    If the to system are different, because they have different number of
+!!    atoms or different types ofatoms, throw an error and suspend the program.
 !!
-      use system_info, only: atoms, weight
+      use system_info, only: atoms, atomic_masses
 
       implicit none
 
       integer, allocatable :: tmp_atoms(:)
-      real(dp), dimension(:), allocatable :: tmp_weight
+      real(dp), dimension(:), allocatable :: tmp_masses
       integer :: n2
       real(dp), parameter :: tolerance = 1.0E-6
 
@@ -95,8 +93,8 @@ contains
       !Read array from gaussian input
       call gaussian_array_num(external_1, "Real atomic weights", "R", n_atoms)
 
-      allocate(weight(n_atoms))
-      call gaussian_var(external_1, weight)
+      allocate(atomic_masses(n_atoms))
+      call gaussian_var(external_1, atomic_masses)
 
       call gaussian_array_num(external_2, "Real atomic weights", "R", n2)
 
@@ -104,16 +102,16 @@ contains
          call output_error_msg("Different number of atoms!")
       end if
 
-      allocate(tmp_weight(n2))
-      call gaussian_var(external_2, tmp_weight)
+      allocate(tmp_masses(n2))
+      call gaussian_var(external_2, tmp_masses)
 
-      if(.not. all(abs(weight-tmp_weight)<tolerance)) then
+      if(.not. all(abs(atomic_masses-tmp_masses)<tolerance)) then
 
          call output_error_msg("Two input have different weight!")
 
       end if
 
-      deallocate(tmp_weight)
+      deallocate(tmp_masses)
 
    end subroutine sanity_check_external
 

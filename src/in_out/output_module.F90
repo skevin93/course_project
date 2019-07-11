@@ -1,8 +1,9 @@
 module output_module
 
+   use kinds
    use file_info, only: output
    use input_file
-   use kinds
+   use chemistry, only: Z_to_symbol
 
    implicit none
 
@@ -13,6 +14,8 @@ module output_module
       module procedure output_real, output_int, output_char, output_real_array, output_real_array_2
    
    end interface
+
+   private :: output_real, output_int, output_char, output_real_array, output_real_array_2
 
 contains
 
@@ -129,7 +132,7 @@ contains
 
       write(the_file%unit_,'(a)') trim(comment_line)
       do i=1, n_atoms
-         write(the_file%unit_,'(i4,3F10.6)') atoms(i), coord(:,i)
+         write(the_file%unit_,'(a4,3F10.6)') Z_to_symbol(atoms(i)), coord(:,i)
       end do
 
    end subroutine

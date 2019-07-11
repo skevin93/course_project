@@ -16,7 +16,7 @@ module superposition
 
 contains
 
-   subroutine superposition_second(atoms, weight, coord_1, coord_2, n_atoms)
+   subroutine superposition_second(weight, coord_1, coord_2, n_atoms)
 !!
 !!    Superposition of second system
 !!    Written by Marco Scavino, June 2019
@@ -26,10 +26,9 @@ contains
       implicit none
 
       integer, intent(in) :: n_atoms
-      integer, intent(in), dimension(n_atoms) :: atoms
       real(dp), intent(in), target, dimension(n_atoms) :: weight
-      real(dp), intent(in), target, dimension(3,n_atoms) :: coord_1
-      real(dp), intent(inout), target, dimension(3,n_atoms) :: coord_2
+      real(dp), intent(inout), target, dimension(3,n_atoms) :: coord_1
+      real(dp), intent(in), target, dimension(3,n_atoms) :: coord_2
 
       integer, allocatable :: atoms_indexes(:)
       real(dp), pointer    :: r_0(:,:), r_1(:,:)
@@ -37,8 +36,6 @@ contains
       real(dp), allocatable :: curr_weight(:), result(:,:)
       real(dp) :: total_weight, q(4), D(3,3)
       integer :: num_atoms
-      
-      type(file) :: f1, f2
 
       superposition = "masses"
       maximize      = "all"
@@ -104,19 +101,7 @@ contains
       allocate(result(3,n_atoms))
       call dgemm("T", "N", 3, n_atoms, 3, one, D, 3, coord_1, 3, zero, result, 3)
 
-      f1 = file(21, "old_2.xyz", "xyz")
-      f2 = file(22, "new_2.xyz", "xyz")
-
-      call open_file(f1, "write")
-      call open_file(f2, "write")
-
-      call output_xyz_file(f1, atoms, coord_2, n_atoms, comment="r_1")
-      call output_xyz_file(f2, atoms, result,  n_atoms, comment="D*r_0")
-
-      call close_file(f1)
-      call close_file(f2)
-
-      coord_2 = result
+      coord_1 = result
 
       deallocate(result)
 
@@ -133,7 +118,7 @@ contains
 
       real(dp) :: M(4,4)
       integer :: i, info
-      real(dp) :: coord_sq, xx, yy, zz
+      real(dp) :: coord_sq, xx, yy, zz, sum_q
       real(dp) :: tmp_1(4), tmp_2(4,4)
 
       M = zero
@@ -191,6 +176,12 @@ contains
 
       end if
 
+      sum_q = q(1)*q(1) + q(2)*q(2) + q(3)*q(3) + q(4)*q(4)
+
+      if(abs(sum_q-one) > tolerance) then
+         call output_error_msg("Q is not normal!")
+      end if
+
    end subroutine
 
    subroutine build_rotation_matrix(q, D_check)
@@ -219,7 +210,7 @@ contains
       D(3,1) = two*(q(1)*q(3) - q(0)*q(2))
       D(3,2) = two*(q(0)*q(1) + q(2)*q(3))
 
-      !print*, "q·q = ", q(0)*q(0) + q(1)*q(1) + q(2)*q(2) + q(3)*q(3)
+      !print*, "q·q = ", 
 
       atan30 = atan(q(3)/q(0))
       atan12 = atan(q(1)/q(2))

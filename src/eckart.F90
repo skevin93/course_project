@@ -1,4 +1,4 @@
-module eckart_rotation
+module eckart
 !!
 !!    Eckart rotation
 !!    Written by Marco Scavino, June 2019
@@ -11,9 +11,8 @@ module eckart_rotation
    use kinds
    use parameters
    use input_file
-   use file_info, only: file
+   use file_info,     only: output_error_msg
    use output_module, only: output_xyz_file
-   use chemistry, only: atomic_masses
 
    implicit none
 
@@ -21,71 +20,48 @@ module eckart_rotation
 
 contains
 
-   subroutine first_rotation(atoms, coord, n)
-
+   subroutine eckart_rotation(atoms, atomic_masses, coord, n)
+!!
+!!    Eckart rotation
+!!    Written by Marco Scavino, July 2019
+!!
       implicit none
 
+      integer, intent(in)     :: n
+      real(dp), intent(in)    :: atomic_masses(:)
       real(dp), intent(inout) :: coord(:,:)
-      integer, intent(in)     :: atoms(:), n
+      integer, intent(in)     :: atoms(:)
 
       real(dp) :: T(3,3)
       real(dp), allocatable :: atomic_mass(:), tmp_coord(:,:)
 
       integer :: i
 
-      type(file) :: f1, f2
+      allocate(atomic_mass(n))
 
-      character(len=30) :: orientation
+      do i=1, n
+         atomic_mass(i) = atomic_masses(atoms(i))
+      end do
 
-      orientation = "eckart"
+      call build_T(n, coord, atomic_mass, T)
 
-      call read_var("orientation", orientation, &
-         description="Orientation of the first atom", &
-         expected=(/"eckart  ",&
-                    "original"/))
+      deallocate(atomic_mass)
 
-      f1 = file(20, "old_1.xyz", "xyz")
-      f2 = file(21, "new_1.xyz", "xyz")
+      allocate(tmp_coord(3,n))
 
-      call open_File(f1, "write")
+      call dgemm("N", "N", 3,n,3, one, T, 3, coord, 3, zero, tmp_coord, 3)
 
-      call output_xyz_file(f1, atoms, coord, n, comment="r_0")
+      coord = tmp_coord
 
-      call close_file(f1)
-
-      if(trim(orientation) == "eckart") then
-
-         allocate(atomic_mass(n))
-
-         do i=1, n
-            atomic_mass(i) = atomic_masses(atoms(i))
-         end do
-
-         call eckart(n, coord, atomic_mass, T)
-
-         deallocate(atomic_mass)
-
-         allocate(tmp_coord(3,n))
-
-         call dgemm("N", "N", 3,n,3, one, T, 3, coord, 3, zero, tmp_coord, 3)
-
-         coord = tmp_coord
-
-         deallocate(tmp_coord)
-
-      end if
-
-
-      call open_File(f2, "write")
-
-      call output_xyz_file(f2, atoms, coord, n, comment="T*r_0")
-
-      call close_file(f2)
+      deallocate(tmp_coord)
 
    end subroutine
 
-   subroutine eckart(n_atom, coord, atomic_mass, eigen_vec, eigen_val)
-
+   subroutine build_T(n_atom, coord, atomic_mass, eigen_vec, eigen_val)
+!!
+!!    Build T matrix
+!!    Written by Marco Scavino, July 2019
+!!
       implicit none
       ! Input
       integer, intent(in) :: n_atom
@@ -153,7 +129,12 @@ contains
          eigen_val = eigen_value
       end if
 
+      print*, "det(T)", T(2,2)*(T(1,1)*T(3,3)-T(3,1)*T(1,3))+&
+                        T(2,1)*(T(3,2)*T(1,3)-T(1,2)*T(3,3))+&
+                        T(2,3)*(T(1,2)*T(3,1)-T(3,2)*T(2,1))
+
       return
-   end subroutine eckart
+
+   end subroutine build_T
 
 end module
