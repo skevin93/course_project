@@ -1,5 +1,8 @@
 module parameters
-
+!!
+!!    General parameters
+!!    Written by Marco Scavino, June 2019
+!!
    use kinds
    implicit none
 

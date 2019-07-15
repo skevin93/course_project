@@ -13,7 +13,7 @@ contains
 
    subroutine duschinsky_matrix(weight, coord_1, coord_2, L_matr_1, L_matr_2, n_atoms)
 !!
-!!    Calc duschinsky
+!!    Calc duschinsky matrix
 !!    Written by Marco Scavino, July 2019
 !!
       implicit none
@@ -81,18 +81,16 @@ contains
    end subroutine
 
    subroutine output_J_matrix(J_matr, n)
-
+!!
+!!    Output duschinsky matrix
+!!    Written by Marco Scavino, July 2019
+!!
       implicit none
 
       real(dp), intent(inout) :: J_matr(:,:)
       integer, intent(in) :: n
       
       character(len=30) :: info, info_2
-      real(dp), allocatable :: tmp(:)
-
-      integer, target :: i, j
-      integer, pointer :: ptr_i, ptr_j
-
       real(dp), allocatable :: max_element(:)
 
       info   = "full"
@@ -101,45 +99,30 @@ contains
       call read_var("matrix", info, &
          description="Matrix info", &
          expected=(/"full          ", &
-                    "J squared     ", &
+                    "squared       ", &
                     "highest square"/))
 
-      call read_var("square", info_2, &
+      select case(trim(info))
+      case("full")
+         call write_output("duschinsky matrix", J_matr)
+      case("squared")
+
+         J_matr = J_matr*J_matr
+         call write_output("duschinsky matrix squared", J_matr)
+
+      case("highest square")
+
+         allocate(max_element(n))
+         call read_var("max square", info_2, &
          description="Matrix info", &
          expected=(/"row   ", &
                     "column"/))
 
-      select case(trim(info))
-      case("full")
-         call write_output("J matrix", J_matr)
-      case("J squared")
-         J_matr = J_matr*J_matr
-         call write_output("J matrix squared", J_matr)
-
-      case("highest square")
-
-         allocate(tmp(n))
-         allocate(max_element(n))
-         J_matr = J_matr*J_matr
-
-         ptr_i => null()
-         ptr_j => null()
-
          if(trim(info_2) == "row")then
-            ptr_i => i
-            ptr_j => j
+            max_element = maxval(J_matr,1)
          else if(trim(info_2)  == "column") then
-            ptr_i => j
-            ptr_j => i
+            max_element = maxval(J_matr,2)
          end if
-
-         do j=1, n
-            do i=1, n
-
-               if(max_element(j) > J_matr(ptr_i, ptr_j)) max_element(j) = J_matr(ptr_i, ptr_j)
-
-            end do
-         end do
 
          call write_output("Max squared", max_element, extra=info_2)
       end select
@@ -147,7 +130,10 @@ contains
    end subroutine
 
    subroutine output_K_shift(K_shift, n_atoms)
-
+!!
+!!    Output shift vector
+!!    Written by Marco Scavino, July 2019
+!!
       implicit none
 
       real(dp), intent(in) :: K_shift(:)
@@ -161,14 +147,14 @@ contains
 
       n = 3*n_atoms
 
-      call read_var("matrix", info, &
+      call read_var("shift vector", info, &
          description="Matrix info", &
          expected=(/"full            ", &
                     "max displacement"/))
 
       select case(trim(info))
       case("full")
-         call write_output("K matrix", K_shift)
+         call write_output("shift vector", K_shift)
       case("max displacement")
          
          max_displ     = maxval(K_shift)
@@ -198,7 +184,8 @@ contains
 
       real(dp), intent(inout) :: matrix(:,:)
 
-      integer :: n, info
+      integer :: n, info, i, j
+      real(dp) :: diff
       real(dp), allocatable :: tmp_1(:), tmp_2(:,:)
 
       info = 0
@@ -206,6 +193,14 @@ contains
 
       allocate(tmp_1(n))
       allocate(tmp_2(n,n))
+
+      do j=1, n
+         do i=1, n
+            diff = abs(matrix(i,j) - matrix(j,i))
+
+            if(diff > tolerance) stop "Non symmetric!"
+         end do
+      end do
 
       call dsyev("V", "L", n, matrix, n, tmp_1, tmp_2, n*n, info)
 
@@ -215,6 +210,8 @@ contains
 
       deallocate(tmp_1)
       deallocate(tmp_2)
+
+      call check_orthogonal(matrix, n)
 
    end subroutine
 

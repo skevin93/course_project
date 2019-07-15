@@ -1,4 +1,8 @@
 module chemistry
+!!
+!!    Chemistry tools
+!!    Written by Marco Scavino, June 2019
+!!
 
    use kinds
    use parameters
@@ -11,6 +15,7 @@ module chemistry
       character(len=2) :: symbol
    end type atomic
 
+   ! list of atomic types
    integer, parameter, private :: num_atomic = 9
    type(atomic) :: atomic_list(num_atomic)
 
@@ -27,7 +32,12 @@ module chemistry
 contains
 
    integer function symbol_to_Z(symbol)
-
+!!
+!!    Symbolt to Z
+!!    Written by Marco Scavino, June 2019
+!!
+!!    Convert the symbol of an element to the corresponding Z value.
+!!
       implicit none
 
       character(len=2), intent(in) :: symbol
@@ -48,7 +58,12 @@ contains
    end function
 
    character(len=2) function Z_to_symbol(Z)
-
+!!
+!!    Z to symbol
+!!    Written by Marco Scavino, June 2019
+!!
+!!    Convert the Z value to the corresponding atomic symbol.
+!!
       implicit none
 
       integer, intent(in) :: Z
@@ -68,7 +83,12 @@ contains
    end function Z_to_symbol
 
    subroutine center_of_mass(masses, coord, n_atoms)
-
+!!
+!!    Center of mass
+!!    Written by Marco Scavino, June 2019
+!!
+!!    Compute the center of mass of a system "coord" and translate it.
+!!
       implicit none
 
       integer, intent(in) :: n_atoms

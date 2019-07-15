@@ -36,11 +36,11 @@ contains
 
    subroutine read_argument()
 !!
-!!    Check interactive mode
+!!    Read arguments
 !!    Writte by Marco Scavino, June 2019
 !!
-!!    Search the flag "interactive" in the input file. In case, switch to the
-!!    interactive mode.
+!!    Check command line for arguments. If user provides no argument or flag "-I",
+!!    it starts the interactive mode. If "-h" flags found, print to shell the help.
 !!
       implicit none
 
@@ -97,6 +97,12 @@ contains
    end subroutine read_argument
 
    subroutine print_help(command, options, descr)
+!!
+!!    Print help
+!!    Writte by Marco Scavino, June 2019
+!!
+!!    Help about the "duschinsky" executable
+!!
       implicit none
 
       character(len=*), intent(in) :: command
@@ -352,8 +358,8 @@ contains
 !!    Read standard input 
 !!    Writte by Marco Scavino, June 2019
 !!
-!!    Read from STDIN the required variable and return in "answer". "description" is printed to the STDOUT.
-!!    If the "choices" is present, they will be printed for the user.
+!!    Read from STDIN the required variable and return in "answer" as a string. "description" is printed to the STDOUT
+!!    for the user. If the "choices" are present, they will be printed for the user.
 !!
       implicit none
 

@@ -1,5 +1,8 @@
 module output_module
-
+!!
+!!    Write to output file
+!!    Written by Marco Scavino, June 2019
+!!
    use kinds
    use file_info, only: output
    use input_file
@@ -29,7 +32,7 @@ contains
 
       write(output%unit_,'(a)', advance='no') var_title
 
-      if(present(extra)) write(output%unit_,'("(",a,")")', advance='no') extra
+      if(present(extra)) write(output%unit_,'(1x,"(",a,")")', advance='no') trim(extra)
 
       write(output%unit_, '(":",1x,' // real_format // ')') var
 
@@ -45,7 +48,7 @@ contains
       
       write(output%unit_,'(a)', advance='no') var_title
 
-      if(present(extra)) write(output%unit_,'("(",a,")")', advance='no') extra
+      if(present(extra)) write(output%unit_,'(1x,"(",a,")")', advance='no') trim(extra)
 
       write(output%unit_, '(":",1x,i0)') var
 
@@ -61,7 +64,7 @@ contains
 
       write(output%unit_,'(a)', advance='no') var_title
 
-      if(present(extra)) write(output%unit_,'("(",a,")")', advance='no') extra
+      if(present(extra)) write(output%unit_,'(1x,"(",a,")")', advance='no') trim(extra)
 
       write(output%unit_, '(":",1x,a)') var
 
@@ -78,7 +81,7 @@ contains
 
       write(output%unit_,'(a)', advance='no') var_title
 
-      if(present(extra)) write(output%unit_,'("(",a,")")', advance='no') extra
+      if(present(extra)) write(output%unit_,'(1x,"(",a,")")', advance='no') trim(extra)
       
       write(output%unit_, '(":",1x,i0)') size(var)
 
@@ -99,7 +102,7 @@ contains
 
       write(output%unit_,'(a)', advance='no') var_title
 
-      if(present(extra)) write(output%unit_,'("(",a,")")', advance='no') extra
+      if(present(extra)) write(output%unit_,'(1x,"(",a,")")', advance='no') trim(extra)
       
       write(output%unit_, '(":",2(1x,i0))') size(var, 1), size(var, 2)
 

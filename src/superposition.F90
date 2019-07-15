@@ -3,13 +3,16 @@ module superposition
 !!    Superposition module
 !!    Written by Marco Scavino, June 2019
 !!
-!!    Superposition is made usign the quaternions.
+!!    Superposition subroutines thanks to the quaternions, based on article
+!!    Kneller GR. “Superposition of molecular structures using quaternions”.
+!!    Molecular Simulation. 1991 May 1;7(1-2):113-9.
 !!
    use kinds
    use parameters
    use input_file
    use output_module
    use chemistry
+   use array_tools
    ! use system_info
 
    real(dp), parameter :: tolerance = 1.0E-6_dp
@@ -22,13 +25,18 @@ contains
 !!    Written by Marco Scavino, June 2019
 !!
 !!    Superpose the second system over the first one usign quaternions
+!!    To achieve this task is necessary to construct the q array, then from it
+!!    build the rotation matrix D.
+!!
+!!    D matrix is applied to the second system "coord_2" and superposes it to the
+!!    first system "coord_1".
 !!
       implicit none
 
       integer, intent(in) :: n_atoms
       real(dp), intent(in), target, dimension(n_atoms) :: weight
-      real(dp), intent(inout), target, dimension(3,n_atoms) :: coord_1
-      real(dp), intent(in), target, dimension(3,n_atoms) :: coord_2
+      real(dp), intent(in), target, dimension(3,n_atoms) :: coord_1
+      real(dp), intent(inout), target, dimension(3,n_atoms) :: coord_2
 
       integer, allocatable :: atoms_indexes(:)
       real(dp), pointer    :: r_0(:,:), r_1(:,:)
@@ -37,6 +45,7 @@ contains
       real(dp) :: total_weight, q(4), D(3,3)
       integer :: num_atoms
 
+      ! default value for superposition and number of atom to maximize
       superposition = "masses"
       maximize      = "all"
 
@@ -50,6 +59,8 @@ contains
          expected=(/"all  ", &
                   "three"/))
 
+      ! if selected three atoms to maximize, then it requests the
+      !  atom index in input
       if(maximize == "three")then
 
          num_atoms = 3
@@ -64,51 +75,64 @@ contains
             description="Insert the three atom index to superpose", &
             required=.true.)
 
-         
          r_0 = coord_1(:,atoms_indexes)
-         r_1 = coord_1(:,atoms_indexes)
-         curr_weight = curr_weight(atoms_indexes)
+         r_1 = coord_2(:,atoms_indexes)
+         curr_weight = weight(atoms_indexes)
 
          deallocate(atoms_indexes)
 
       else
 
-         allocate(curr_weight(n_atoms))
+         ! set all atoms if "all" keyword used
+         num_atoms = n_atoms
 
+         allocate(curr_weight(num_atoms))
          curr_weight = weight
+
          r_0 => coord_1
          r_1 => coord_2
 
       end if
 
       ! If "masses" is setup for superposition, use atomic masses, else use the same weights for
-      !  all the atoms. The weights are normalized to assure that Σ_α w_α = 1
+      !  all the atoms. The weights are normalized in both cases to assure that Σ_α w_α = 1
       if(trim(superposition) == "masses") then
 
          total_weight = sum(curr_weight)
-         curr_weight = curr_weight/total_weight
+         curr_weight(:) = curr_weight(:)/total_weight
 
       else
 
-         curr_weight = one/n_atoms
+         curr_weight(:) = one/num_atoms
 
       end if
 
-      call calc_q(curr_weight, r_0, r_1, q, num_atoms)
+      call calc_q(curr_weight, r_1, r_0, q, num_atoms)
 
       call build_rotation_matrix(q, D)
 
+      ! apply the rotation matrix to 
       allocate(result(3,n_atoms))
-      call dgemm("T", "N", 3, n_atoms, 3, one, D, 3, coord_1, 3, zero, result, 3)
+      call dgemm("N", "N", 3, n_atoms, 3, one, D, 3, coord_2, 3, zero, result, 3)
 
-      coord_1 = result
+      coord_2 = result
 
       deallocate(result)
 
    end subroutine
 
    subroutine calc_q(w, r_0, r_1, q, n)
-
+!!
+!!    Calc quaternions array q
+!!    Written by Marco Scavino, June 2019
+!!
+!!    First of all, this subroutine builds the matrix M_α, for each atom, using the two set of coordinates r_0 and r_1,
+!!    All the matrices are summed up in the final M matrix, multiplied for the corresponding weight:
+!!
+!!       M = Σ_α w_α*Μ_α
+!!
+!!    This matrix is diagolize: the eigenvector corresponding to the lowest eigenvalue is the quaternions array q.
+!!
       implicit none
 
       integer, intent(in) :: n
@@ -137,12 +161,12 @@ contains
          M(3,3) = M(3,3) + w(i)*(coord_sq+xx-yy+zz)
          M(4,4) = M(4,4) + w(i)*(coord_sq+xx+yy-zz)
 
-         M(1,2) = M(1,2) + w(i)*two*(r_0(2,i)*r_1(3,i) + r_0(3,i)*r_1(2,i))
-         M(1,3) = M(1,3) + w(i)*two*(r_0(3,i)*r_1(1,i) - r_0(1,i)*r_1(3,i))
-         M(1,4) = M(1,4) + w(i)*two*(r_0(1,i)*r_1(2,i) + r_0(2,i)*r_1(1,i))
-         M(2,3) = M(2,3) - w(i)*two*(r_0(1,i)*r_1(1,i) + r_0(1,i)*r_1(1,i))
-         M(2,4) = M(2,4) - w(i)*two*(r_0(1,i)*r_1(3,i) + r_0(3,i)*r_1(1,i))
-         M(3,4) = M(3,4) - w(i)*two*(r_0(2,i)*r_1(3,i) + r_0(3,i)*r_1(2,i))
+         M(1,2) = M(1,2) + w(i)*two*(r_1(2,i)*r_0(3,i) - r_1(3,i)*r_0(2,i))
+         M(1,3) = M(1,3) + w(i)*two*(r_1(3,i)*r_0(1,i) - r_1(1,i)*r_0(3,i))
+         M(1,4) = M(1,4) + w(i)*two*(r_1(1,i)*r_0(2,i) - r_1(2,i)*r_0(1,i))
+         M(2,3) = M(2,3) - w(i)*two*(r_1(1,i)*r_0(2,i) + r_1(2,i)*r_0(1,i))
+         M(2,4) = M(2,4) - w(i)*two*(r_1(1,i)*r_0(3,i) + r_1(3,i)*r_0(1,i))
+         M(3,4) = M(3,4) - w(i)*two*(r_1(2,i)*r_0(3,i) + r_1(3,i)*r_0(2,i))
 
       end do
 
@@ -153,46 +177,39 @@ contains
       M(4,2) = M(2,4)
       M(4,3) = M(3,4)
 
-      if (abs(M(1,2)) < tolerance .and. &
-          abs(M(1,3)) < tolerance .and. &
-          abs(M(2,3)) < tolerance .and. &
-          abs(M(2,4)) < tolerance .and. &
-          abs(M(3,4)) < tolerance) then
+      !diagonalization of M matrix
+      call dsyev('V', 'L', 4, M, 4, tmp_1, tmp_2, 16, info)
 
-         q = one
+      if (info /= 0) then
 
-      else
-      
-         call dsyev('V', 'L', 4, M, 4, tmp_1, tmp_2, 16, info)
-
-         if (info /= 0) then
-         
-            
-            call output_error_msg('Diagonalizing M matrix for superposition failed', error=info)
-         
-         end if
-
-         q = M(:,1)
+         call output_error_msg('Diagonalizing M matrix for superposition failed', error=info)
 
       end if
 
+      q = M(:,1)
+
+      ! check that quaternions array is normalized
       sum_q = q(1)*q(1) + q(2)*q(2) + q(3)*q(3) + q(4)*q(4)
 
       if(abs(sum_q-one) > tolerance) then
-         call output_error_msg("Q is not normal!")
+         call output_error_msg("q array is not normal!")
       end if
 
    end subroutine
 
-   subroutine build_rotation_matrix(q, D_check)
-
+   subroutine build_rotation_matrix(q, D)
+!!
+!!    Build rotation matrix D
+!!    Written by Marco Scavino, June 2019
+!!
+!!    Using the quaternions array q, build the rotation matrix D
+!!
       implicit none
 
       real(dp), intent(in)  :: q(0:3)
-      real(dp), intent(out) :: D_check(3,3)
+      real(dp), intent(out) :: D(3,3)
 
-      real(dp) :: q_sq(0:3), atan30, atan12, alpha, beta, gamma
-      real(dp), dimension(3,3) :: D, Rz1, Ry, Rz2
+      real(dp) :: q_sq(0:3)
 
       q_sq(0) = q(0)*q(0)
       q_sq(1) = q(1)*q(1)
@@ -210,97 +227,6 @@ contains
       D(3,1) = two*(q(1)*q(3) - q(0)*q(2))
       D(3,2) = two*(q(0)*q(1) + q(2)*q(3))
 
-      !print*, "q·q = ", 
-
-      atan30 = atan(q(3)/q(0))
-      atan12 = atan(q(1)/q(2))
-
-      alpha = atan30-atan12
-      gamma = atan30+atan12
-      beta  = q(0)/(cos((gamma+alpha)*half))
-      !print*, "α = ", alpha/pi*180
-      !print*, "β = ", beta/pi*180
-      !print*, "γ = ", gamma/pi*180
-
-      Rz2(1,:) = (/cos(gamma), -sin(gamma), zero/)
-      Rz2(2,:) = (/sin(gamma),  cos(gamma), zero/)
-      Rz2(3,:) = (/      zero,        zero,  one/)
-
-      Ry(1,:) = (/ cos(beta),  zero, sin(beta)/)
-      Ry(2,:) = (/      zero,   one,      zero/)
-      Ry(3,:) = (/-sin(beta),  zero, cos(beta)/)
-
-      Rz1(1,:) = (/cos(alpha), -sin(alpha), zero/)
-      Rz1(2,:) = (/sin(alpha),  cos(alpha), zero/)
-      Rz1(3,:) = (/      zero,        zero,  one/)
-
-
-      D_check = matmul(Ry, Rz1)
-
-      D_check = matmul(Rz2, D_check)
-
-      ! print'(/1x, "det(",a,"): ", f0.6)', "D", deter(D)
-      !print*, "D matrix:"
-      ! print'(3F12.6)', (D(i,:), i=1, 3)
-
-      call inverse(D, Ry)
-      Ry = Ry - transpose(D)
-      !print*, "D-1 matrix:"
-      ! print'(3F12.6)', (Ry(i,:), i=1, 3)
-
-
-      ! print'(/1x, "det(",a,"): ", f0.6)', "D_check", deter(D_check)
-      !print*, "D matrix:"
-      ! print'(3F12.6)', (D_check(i,:), i=1, 3)
-
-      call inverse(D_check, Ry)
-      ! print'(/1x, a)', "D-1 matrix:"
-      ! print'(3F12.6)', (Ry(i,:), i=1, 3
-
-      ! print'(/,2a36)', "r_0", "r_1"
-      ! print'(6F12.6)', (vec(:,i), r_1(:,i), i=1, size(vec,2))
    end subroutine
 
-   pure function deter(mat)
-
-      implicit none
-
-      real(dp), intent(in) :: mat(3,3)
-
-      real(dp) :: deter
-      
-      deter = mat(1,1)*mat(2,2)*mat(3,3)
-      deter = deter + mat(1,2)*mat(2,3)*mat(3,1)
-      deter = deter + mat(1,3)*mat(3,2)*mat(2,1)
-      deter = deter - mat(1,3)*mat(2,2)*mat(3,1)
-      deter = deter - mat(1,2)*mat(2,1)*mat(3,3)
-      deter = deter - mat(2,3)*mat(3,2)*mat(1,1)
-
-   end function
-
-   pure subroutine inverse(mat, mat_res)
-
-      implicit none
-
-      real(dp), intent(in) :: mat(3,3)
-      real(dp), intent(out) :: mat_res(3,3)
-
-      real(dp) :: deter_mat
-
-      deter_mat = deter(mat)
-
-      if(deter_mat == zero) return
-!  C_A^T
-      mat_res(1,1) =   mat(2,2)*mat(3,3) - mat(2,3)*mat(3,2)
-      mat_res(1,2) = -(mat(1,2)*mat(3,3) - mat(1,3)*mat(3,2))
-      mat_res(1,3) =   mat(1,2)*mat(2,3) - mat(1,3)*mat(2,2)
-      mat_res(2,1) = -(mat(2,1)*mat(3,3) - mat(2,3)*mat(3,1))
-      mat_res(2,2) =   mat(1,1)*mat(3,3) - mat(1,3)*mat(3,1)
-      mat_res(2,3) = -(mat(1,1)*mat(2,3) - mat(1,3)*mat(2,1))
-      mat_res(3,1) =   mat(2,1)*mat(3,2) - mat(2,2)*mat(3,1)
-      mat_res(3,2) = -(mat(1,1)*mat(3,2) - mat(1,2)*mat(3,1))
-      mat_res(3,3) =   mat(1,1)*mat(2,2) - mat(1,2)*mat(2,1)
-
-      mat_res = mat_res/deter_mat
-   end subroutine
 end module superposition

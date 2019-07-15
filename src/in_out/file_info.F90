@@ -51,7 +51,13 @@ contains
       inquire(unit=the_file%unit_, opened=check_file)
 
       if (check_file) then
-         call output_error_msg("Unit for file " // trim(the_file%name_) // "already opened!")
+         call output_error_msg("Unit for file " // trim(the_file%name_) // " already opened!")
+      end if
+
+      inquire(file=the_file%name_, opened=check_file)
+
+      if (check_file) then
+         call output_error_msg("File " // trim(the_file%name_) // " already opened!")
       end if
 
       if("read" == trim(f_action)) then

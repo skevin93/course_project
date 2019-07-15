@@ -13,6 +13,7 @@ module eckart
    use input_file
    use file_info,     only: output_error_msg
    use output_module, only: output_xyz_file
+   use array_tools
 
    implicit none
 
@@ -125,13 +126,10 @@ contains
 
       end if
 
+      ! if required eigenvalue, return them
       if(present(eigen_val))then
          eigen_val = eigen_value
       end if
-
-      print*, "det(T)", T(2,2)*(T(1,1)*T(3,3)-T(3,1)*T(1,3))+&
-                        T(2,1)*(T(3,2)*T(1,3)-T(1,2)*T(3,3))+&
-                        T(2,3)*(T(1,2)*T(3,1)-T(3,2)*T(2,1))
 
       return
 
