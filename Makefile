@@ -1,25 +1,25 @@
 
 # set the compiler and proper flags
 FC = gfortran
+FC_FLAGS = -J$(MOD_DIR) -I$(MOD_DIR) -std=f95 -Wall -fall-intrinsics
+FC_INC    =
+FC_LIB = -lblas -llapack
 
-ifeq ($(FC), gfortran)
-   FC_FLAGS ?= -J$(MOD_DIR) -std=f95 -Wall -fall-intrinsics
-   FC_INC    =
-   FC_LIB = -lblas -llapack
-
-else # if($(FC), ifort)
-   FC_FLAGS ?= -module $(MOD_DIR) -warn all -std95
-   FC_INC    = -I${MKLROOT}/include/intel64/lp64 \
-					-I${MKLROOT}/include
-   FC_LIB    = ${MKLROOT}/lib/intel64/libmkl_blas95_lp64.a   \
-					${MKLROOT}/lib/intel64/libmkl_lapack95_lp64.a \
-					 -Wl,--start-group                            \
-					 ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a   \
-					 ${MKLROOT}/lib/intel64/libmkl_intel_thread.a \
-					 ${MKLROOT}/lib/intel64/libmkl_core.a         \
-					 -Wl,--end-group                               \
-					 -liomp5 -lpthread -lm -ldl
-endif
+# else
+	# if($(FC), ifort)
+	# 	FC_FLAGS = -module $(MOD_DIR) -warn all -std95
+	# 	FC_INC    = -I${MKLROOT}/include/intel64/lp64 \
+	# 					-I${MKLROOT}/include
+	# 	FC_LIB    = ${MKLROOT}/lib/intel64/libmkl_blas95_lp64.a   \
+	# 					${MKLROOT}/lib/intel64/libmkl_lapack95_lp64.a \
+	# 					-Wl,--start-group                            \
+	# 					${MKLROOT}/lib/intel64/libmkl_intel_lp64.a   \
+	# 					${MKLROOT}/lib/intel64/libmkl_intel_thread.a \
+	# 					${MKLROOT}/lib/intel64/libmkl_core.a         \
+	# 					-Wl,--end-group                               \
+	# 					-liomp5 -lpthread -lm -ldl
+	# endif
+# endif
 
 STANDARD_FLAGS ?= -O3
 DEBUG_FLAGS    ?= -Og
@@ -29,7 +29,7 @@ OBJ = duschinsky
 
 #set the directory for object files, module files and sources
 BIN_DIR   = .
-BUILD_DIR = build
+BUILD_DIR = ./build
 MOD_DIR = $(BUILD_DIR)/mod
 OBJ_DIR = $(BUILD_DIR)/obj
 SRC_DIR = src

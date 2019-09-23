@@ -90,9 +90,12 @@ contains
 
       ! Open input and output file after get the information form command line
       call open_file(output, "write")
-      call open_file(input, "read")
 
-      if(interactive) write(*,*) "INTERACTIVE MODE"
+      if(interactive) then
+         write(*,*) "INTERACTIVE MODE"
+      else
+         call open_file(input, "read")
+      end if
 
    end subroutine read_argument
 
@@ -386,7 +389,9 @@ contains
       end if
 
       write(*, '(":",1x)', advance='no')
-      read(*,*, iostat=error, end=100)  answer
+      read(*, '(a)', iostat=error, end=100)  answer
+
+      print*, answer
 
       if(error /= 0) then
          call output_error_msg("Wrong value in input!")

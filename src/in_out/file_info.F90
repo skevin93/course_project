@@ -199,6 +199,7 @@ contains
       var_found = .false.
       f_error = 0
       num = 0
+      i = 0
 
       ! loop over the file until "var_title" is found
 
@@ -214,9 +215,11 @@ contains
 
          line = adjustl(line)
 
-         do i=1, len_trim(line)+1
+         i = 0
+         do while (.not. var_found .and. i<len_trim(line)+1)
 
-            if(line(i:i) == "") then
+            i = i+1
+            if(line(i:i) == " ") then
 
                !check for variable title
                if(trim(line(1:i-1)) == trim(var_title)) then
@@ -225,27 +228,23 @@ contains
                
                end if
 
-               if(var_found) then
-
-                  ! If requested value, then 
-                  if(present(var)) then
-                  
-                     ! Finally, return the variable
-                     var = trim(adjustl(line(i:)))
-
-                  end if
-                  
-                  exit
-
-               end if
-
             end if
 
          end do
       
       end do
 
-      if(required .and. .not. var_found) then
+      if(var_found) then
+
+         ! If requested value, then 
+         if(present(var)) then
+         
+            ! Finally, return the variable
+            var = trim(adjustl(line(i:)))
+
+         end if
+
+      else if(required) then
          call output_error_msg("Required variable """ // trim(var_title) // &
             """ not found!", filename=the_file%name_)
       end if
